@@ -1,80 +1,72 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Employee Management System</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="min-h-screen bg-gray-100">
-    <div class="container mx-auto p-4">
-        <h1 class="text-2xl font-bold mb-4">Employees</h1>
-        <div class="mb-4">
-            <a href="{% url 'employee_create' %}" class="bg-blue-500 text-white px-4 py-2 rounded">
-                Add New Employee
-            </a>
-        </div>
-        <form method="GET" class="mb-4">
-            <input type="text" name="search" value="{{ search|default:'' }}"
-                   placeholder="Search employees..." class="border rounded p-2">
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Search</button>
-        </form>
-        <table class="w-full border">
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="border p-2">Employee ID</th>
-                    <th class="border p-2">Name</th>
-                    <th class="border p-2">Role</th>
-                    <th class="border p-2">Designation</th>
-                    <th class="border p-2">Reporting Manager</th>
-                    <th class="border p-2">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for employee in employees %}
-                <tr>
-                    <td class="border p-2">{{ employee.emp_id }}</td>
-                    <td class="border p-2">{{ employee.data.name|default:'N/A' }}</td>
-                    <td class="border p-2">{{ employee.role }}</td>
-                    <td class="border p-2">{{ employee.designation }}</td>
-                    <td class="border p-2">
-                        {{ employee.reporting_manager.data.name|default:'None' }}
-                    </td>
-                    <td class="border p-2">
-                        <a href="{% url 'employee_edit' employee.pk %}" class="text-blue-500">Edit</a>
-                        <a href="{% url 'employee_detail' employee.pk %}" class="text-blue-500 ml-2">View</a>
-                        <a href="#" onclick="deleteEmployee({{ employee.pk }})"
-                           class="text-red-500 ml-2">Delete</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="border p-2 text-center">No employees found</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+{% extends 'base.html' %}
 
-    <script>
-    async function deleteEmployee(pk) {
-        if (confirm('Are you sure you want to delete this employee?')) {
-            try {
-                const response = await fetch(`/employee/${pk}/delete/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Error deleting employee');
+{% block title %}Employees{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Employees</h1>
+<div class="mb-4">
+    <a href="{% url 'employee_create' %}" class="submit-btn">Add New Employee</a>
+</div>
+<form method="GET" class="mb-4 flex space-x-2">
+    <input type="text" name="search" value="{{ search|default:'' }}"
+           placeholder="Search employees..." class="border rounded p-2 flex-grow">
+    <button type="submit" class="submit-btn">Search</button>
+</form>
+<table>
+    <thead>
+        <tr class="bg-gray-100">
+            <th>Employee ID</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Designation</th>
+            <th>Reporting Manager</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for employee in employees %}
+        <tr>
+            <td>{{ employee.emp_id }}</td>
+            <td>{{ employee.data.name|default:'N/A' }}</td>
+            <td>{{ employee.role }}</td>
+            <td>{{ employee.designation }}</td>
+            <td>{{ employee.reporting_manager.data.name|default:'None' }}</td>
+            <td>
+                <a href="{% url 'employee_edit' employee.pk %}" class="text-blue-500">Edit</a>
+                <a href="{% url 'employee_detail' employee.pk %}" class="text-blue-500 ml-2">View</a>
+                <a href="#" onclick="deleteEmployee({{ employee.pk }})" class="text-red-500 ml-2">Delete</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" class="text-center">No employees found</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function deleteEmployee(pk) {
+    if (confirm('Are you sure you want to delete this employee?')) {
+        try {
+            const response = await fetch(`/employee/${pk}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
                 }
-            } catch (error) {
-                alert('An error occurred: ' + error.message);
+            });
+            const data = await response.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error deleting employee');
             }
+        } catch (error) {
+            alert('An error occurred: ' + error.message);
         }
     }
-    </script>
-</body>
-</html>
+}
+</script>
+{% endblock %}

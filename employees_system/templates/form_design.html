@@ -1,26 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head><title>Form Design</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-</head>
-<body>
-    <div id="form-builder">
-        <div id="fields-container" class="sortable">
-            {% for field in fields %}
-            <div class="field" data-id="{{ field.id }}">
-                <input type="text" class="label" value="{{ field.label }}" readonly>
-                <select class="type" disabled>
-                    <option {{ field.input_type|yesno:"selected," }} value="{{ field.input_type }}">{{ field.input_type }}</option>
-                    <option value="text">text</option><option value="number">number</option>
-                    <option value="date">date</option><option value="password">password</option>
-                </select>
-            </div>
-            {% endfor %}
+{% extends 'base.html' %}
+
+{% block title %}Form Design{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.css">
+{% endblock %}
+
+{% block content %}
+<div id="form-builder">
+    <div id="fields-container" class="sortable">
+        {% for field in fields %}
+        <div class="field" data-id="{{ field.id }}">
+            <input type="text" class="label" value="{{ field.label }}" readonly>
+            <select class="type" disabled>
+                <option {{ field.input_type|yesno:"selected," }} value="{{ field.input_type }}">{{ field.input_type }}</option>
+                <option value="text">text</option>
+                <option value="number">number</option>
+                <option value="date">date</option>
+                <option value="password">password</option>
+            </select>
         </div>
-        <button id="add-field">Add Field</button>
-        <button id="save-form">Save</button>
+        {% endfor %}
     </div>
-    <script src="/static/js/form_design.js"></script>
-</body>
-</html>
+    <button id="add-field" class="submit-btn">Add Field</button>
+    <button id="save-form" class="submit-btn">Save</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="/static/js/form_design.js"></script>
+{% endblock %}
