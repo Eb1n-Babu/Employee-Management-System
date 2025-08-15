@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Employee Create</title></head>
+<body>
+    <form id="employee-form">
+        {% for field in fields %}
+        <div><label>{{ field.label }}:</label>
+            <input type="{{ field.input_type }}" name="{{ field.label }}" value="{{ data|default_if_none:''|get_item:field.label }}">
+        </div>
+        {% endfor %}
+        <button type="submit">Save</button>
+    </form>
+    <script src="/static/js/employee_create.js"></script>
+</body>
+</html>
