@@ -25,14 +25,70 @@ def login_view(request):
         return JsonResponse({'success': False, 'error': 'Invalid credentials'}, status=400)
     return render(request, 'login.html')
 
+
 def register_view(request):
     if request.method == 'POST':
         data = request.POST
-        if not re.match(r'^(?=.*[A-Z])(?=.*\d).{8,}$', data['password']):
-            return JsonResponse({'success': False, 'error': 'Password must be 8+ chars with 1 uppercase and 1 number'}, status=400)
-        user = User.objects.create_user(username=data['username'], email=data['email'], password=data['password'])
-        login(request, user)
-        return JsonResponse({'success': True})
+
+        # Extract form data
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+
+        # Validation checks
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Username already exists'
+            }, status=400)
+
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Email already exists'
+            }, status=400)
+
+        # Check if passwords match
+        if password != confirm_password:
+            return JsonResponse({
+                'success': False,
+                'error': 'Passwords do not match'
+            }, status=400)
+
+        # Password validation regex
+        password_pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+
+        if not re.match(password_pattern, password):
+            return JsonResponse({
+                'success': False,
+                'error': 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'
+            }, status=400)
+
+        try:
+            # Create user
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password
+            )
+
+            # Log in the user
+            login(request, user)
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Registration successful'
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+
     return render(request, 'register.html')
 
 def change_password_view(request):
@@ -88,7 +144,7 @@ def employee_create_view(request, pk=None):
         return JsonResponse({'success': True})
     return render(request, 'employee_create.html', {'fields': fields, 'data': data})
 
-# ems_app/views.py (add)
+
 def employee_list_view(request):
     employees = Employee.objects.all()
     search = request.GET.get('search')
