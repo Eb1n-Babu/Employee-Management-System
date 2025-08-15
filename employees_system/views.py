@@ -66,3 +66,21 @@ def form_design_view(request):
             label, input_type = field.split(',')
             FormField.objects.create(label=label, input_type=input_type, order=idx)
         return JsonResponse({'success': True})
+
+# ems_app/views.py (add)
+def employee_create_view(request, pk=None):
+    fields = FormField.objects.all().order_by('order')
+    if pk:
+        employee = Employee.objects.get(pk=pk)
+        data = employee.data
+    else:
+        data = {}
+    if request.method == 'POST':
+        post_data = {field.label: request.POST.get(field.label) for field in fields}
+        if pk:
+            employee.data = post_data
+            employee.save()
+        else:
+            Employee.objects.create(data=post_data, created_by=request.user)
+        return JsonResponse({'success': True})
+    return render(request, 'employee_create.html', {'fields': fields, 'data': data})
