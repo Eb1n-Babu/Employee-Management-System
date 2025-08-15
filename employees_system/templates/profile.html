@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head><title>Profile</title></head>
+<body>
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="bio" placeholder="Bio" value="{{ profile.bio|default:'' }}">
+        <button type="submit">Update</button>
+    </form>
+</body>
+</html>
