@@ -52,3 +52,17 @@ def profile_view(request):
         request.user.save()
         return JsonResponse({'success': True})
     return render(request, 'profile.html', {'profile': request.user.profile_data})
+
+
+@csrf_exempt
+def form_design_view(request):
+    if request.method == 'GET':
+        fields = FormField.objects.all().order_by('order')
+        return render(request, 'form_design.html', {'fields': fields})
+    elif request.method == 'POST':
+        data = request.POST.getlist('fields[]')
+        FormField.objects.all().delete()
+        for idx, field in enumerate(data):
+            label, input_type = field.split(',')
+            FormField.objects.create(label=label, input_type=input_type, order=idx)
+        return JsonResponse({'success': True})
