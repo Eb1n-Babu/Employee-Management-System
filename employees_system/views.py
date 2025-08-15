@@ -353,15 +353,16 @@ class EmployeeAPI(APIView):
         return Response(serializer.errors, status=400)
     def put(self, request, pk):
         employee = Employee.objects.get(pk=pk)
-        employee.data = request.data
-        employee.save()
-        return Response(EmployeeSerializer(employee).data)
+        serializer = EmployeeSerializer(employee, data={'data': request.data}, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
     def delete(self, request, pk):
         Employee.objects.get(pk=pk).delete()
         return Response(status=204)
 
 class UserAPI(APIView):
-    permission_classes = [IsAuthenticated]
     def post(self, request):
         if not re.match(r'^(?=.*[A-Z])(?=.*\d).{8,}$', request.data['password']):
             return Response({'error': 'Password must be 8+ chars with 1 uppercase and 1 number'}, status=400)

@@ -18,10 +18,10 @@ urlpatterns = [
     path('employee/<int:pk>/delete/', employee_delete_view, name='employee_delete'),
     path('employees/', employee_list_view, name='employee_list'),
 
-    path('api/form-fields/', FormFieldAPI.as_view()),
-    path('api/employees/', EmployeeAPI.as_view()),
-    path('api/employees/<int:pk>/', EmployeeAPI.as_view()),
-    path('api/register/', UserAPI.as_view()),
+    path('api/form-fields/', FormFieldAPI.as_view(), name='formfield-list'),
+    path('api/employees/', EmployeeAPI.as_view(), name='employee-list'),
+    path('api/employees/<int:pk>/', EmployeeAPI.as_view(), name='employee-detail'),
+    path('api/register/', UserAPI.as_view(), name='user-register'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
