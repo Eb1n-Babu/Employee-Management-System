@@ -30,35 +30,30 @@ def register_view(request):
     if request.method == 'POST':
         data = request.POST
 
-        # Extract form data
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
         confirm_password = data.get('confirm_password')
 
-        # Validation checks
-        # Check if username already exists
         if User.objects.filter(username=username).exists():
             return JsonResponse({
                 'success': False,
                 'error': 'Username already exists'
             }, status=400)
 
-        # Check if email already exists
         if User.objects.filter(email=email).exists():
             return JsonResponse({
                 'success': False,
                 'error': 'Email already exists'
             }, status=400)
 
-        # Check if passwords match
+
         if password != confirm_password:
             return JsonResponse({
                 'success': False,
                 'error': 'Passwords do not match'
             }, status=400)
 
-        # Password validation regex
         password_pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
 
         if not re.match(password_pattern, password):
