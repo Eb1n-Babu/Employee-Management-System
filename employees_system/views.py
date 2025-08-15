@@ -1,9 +1,12 @@
 from django.shortcuts import render
 from django.http import JsonResponse
+from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+
+from .forms import EmployeeForm
 from .models import User, FormField, Employee
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
@@ -249,34 +252,77 @@ def form_design_view(request):
         return JsonResponse({'success': True})
 
 
+@login_required
 def employee_create_view(request, pk=None):
     fields = FormField.objects.all().order_by('order')
+    employee = None
+    data = {}
+
     if pk:
-        employee = Employee.objects.get(pk=pk)
+        employee = get_object_or_404(Employee, pk=pk)
         data = employee.data
-    else:
-        data = {}
+
     if request.method == 'POST':
+        form = EmployeeForm(request.POST)
         post_data = {field.label: request.POST.get(field.label) for field in fields}
-        if pk:
-            employee.data = post_data
-            employee.save()
+
+        if form.is_valid():
+            if pk:
+                employee.data = post_data
+                employee.role = form.cleaned_data['role']
+                employee.designation = form.cleaned_data['designation']
+                employee.reporting_manager = form.cleaned_data['reporting_manager']
+                employee.save()
+            else:
+                Employee.objects.create(
+                    data=post_data,
+                    created_by=request.user,
+                    role=form.cleaned_data['role'],
+                    designation=form.cleaned_data['designation'],
+                    reporting_manager=form.cleaned_data['reporting_manager']
+                )
+            return JsonResponse({'success': True})
         else:
-            Employee.objects.create(data=post_data, created_by=request.user)
-        return JsonResponse({'success': True})
-    return render(request, 'employee_create.html', {'fields': fields, 'data': data})
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+    form = EmployeeForm(instance=employee)
+    return render(request, 'employee_create.html', {
+        'fields': fields,
+        'data': data,
+        'form': form,
+        'employee': employee
+    })
 
 
+@login_required
 def employee_list_view(request):
     employees = Employee.objects.all()
     search = request.GET.get('search')
     if search:
-        employees = [e for e in employees if any(search.lower() in str(v).lower() for v in e.data.values())]
-    return render(request, 'employee_list.html', {'employees': employees})
+        employees = [
+            e for e in employees
+            if any(search.lower() in str(v).lower() for v in e.data.values()) or
+               search.lower() in e.role.lower() or
+               search.lower() in e.designation.lower() or
+               search.lower() in e.emp_id.lower() or
+               (e.reporting_manager and search.lower() in e.reporting_manager.data.get('name', '').lower())
+        ]
+    return render(request, 'employee_list.html', {'employees': employees, 'search': search})
 
+
+@login_required
+def employee_detail_view(request, pk):
+    employee = get_object_or_404(Employee, pk=pk)
+    return render(request, 'employee_detail.html', {'employee': employee})
+
+
+@login_required
 def employee_delete_view(request, pk):
-    Employee.objects.get(pk=pk).delete()
-    return JsonResponse({'success': True})
+    if request.method == 'POST':
+        employee = get_object_or_404(Employee, pk=pk)
+        employee.delete()
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False}, status=400)
 
 class FormFieldAPI(APIView):
     permission_classes = [IsAuthenticated]
