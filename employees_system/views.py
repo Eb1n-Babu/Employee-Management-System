@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .models import User
+from .models import User, FormField, Employee
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 import re
@@ -84,3 +84,15 @@ def employee_create_view(request, pk=None):
             Employee.objects.create(data=post_data, created_by=request.user)
         return JsonResponse({'success': True})
     return render(request, 'employee_create.html', {'fields': fields, 'data': data})
+
+# ems_app/views.py (add)
+def employee_list_view(request):
+    employees = Employee.objects.all()
+    search = request.GET.get('search')
+    if search:
+        employees = [e for e in employees if any(search.lower() in str(v).lower() for v in e.data.values())]
+    return render(request, 'employee_list.html', {'employees': employees})
+
+def employee_delete_view(request, pk):
+    Employee.objects.get(pk=pk).delete()
+    return JsonResponse({'success': True})
