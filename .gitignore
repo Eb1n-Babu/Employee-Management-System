@@ -1,0 +1,63 @@
+# 🐍 Python bytecode and cache
+*.pyc
+*.py[cod]
+*$py.class
+__pycache__/
+
+# 🧪 Testing and coverage
+.coverage
+*.cover
+*.py,cover
+*.cache
+nosetests.xml
+coverage.xml
+
+# 🗃️ SQLite database
+*.sqlite3
+
+# 📦 Python packaging
+*.egg-info/
+*.egg
+*.eggs
+build/
+dist/
+
+# 📁 Virtual environments
+venv/
+env/
+*.venv/
+*.env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 🧾 Logs and translation files
+*.log
+*.pot
+
+# 🖼️ Media uploads
+media/
+
+# 🔐 Environment variables
+.env
+*.env
+.env.*
+!.env.example  # Keep example env file for reference
+
+# 🧱 Static files (collected via collectstatic)
+staticfiles/
+
+# 🛠️ IDE/editor settings
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# 🖥️ OS-generated files
+.DS_Store
+Thumbs.db
+
+# 🧹 Miscellaneous
+*.bak
+*.swp
+*.tmp
+*~
