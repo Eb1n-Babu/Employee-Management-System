@@ -1,0 +1,2 @@
+.field { border: 1px solid #ccc; padding: 10px; margin: 5px; display: flex; gap: 10px; }
+.sortable { min-height: 100px; }
