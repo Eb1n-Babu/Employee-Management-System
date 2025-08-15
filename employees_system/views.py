@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,6 +8,7 @@ from .models import User, FormField, Employee
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 import re
+from django.contrib.auth.decorators import login_required
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .serializers import EmployeeSerializer, FormFieldSerializer, UserSerializer
@@ -86,17 +87,57 @@ def register_view(request):
 
     return render(request, 'register.html')
 
+
+@login_required
 def change_password_view(request):
     if request.method == 'POST':
         data = request.POST
+
+        # Extract form data
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+        confirm_new_password = data.get('confirm_new_password')
+
+        # Validate old password
         user = request.user
-        if not user.check_password(data['old_password']):
-            return JsonResponse({'success': False, 'error': 'Old password incorrect'}, status=400)
-        if not re.match(r'^(?=.*[A-Z])(?=.*\d).{8,}$', data['new_password']):
-            return JsonResponse({'success': False, 'error': 'New password must be 8+ chars with 1 uppercase and 1 number'}, status=400)
-        user.set_password(data['new_password'])
-        user.save()
-        return JsonResponse({'success': True})
+        if not user.check_password(old_password):
+            return JsonResponse({
+                'success': False,
+                'error': 'Old password is incorrect'
+            }, status=400)
+
+        # Check if new passwords match
+        if new_password != confirm_new_password:
+            return JsonResponse({
+                'success': False,
+                'error': 'New passwords do not match'
+            }, status=400)
+
+        # Password validation regex
+        password_pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+
+        if not re.match(password_pattern, new_password):
+            return JsonResponse({
+                'success': False,
+                'error': 'New password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'
+            }, status=400)
+
+        try:
+            # Update password
+            user.set_password(new_password)
+            user.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Password changed successfully'
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+
     return render(request, 'change_password.html')
 
 def profile_view(request):
