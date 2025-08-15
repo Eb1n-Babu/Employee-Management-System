@@ -140,14 +140,100 @@ def change_password_view(request):
 
     return render(request, 'change_password.html')
 
-def profile_view(request):
-    if request.method == 'POST':
-        data = request.POST.dict()
-        request.user.profile_data.update(data)
-        request.user.save()
-        return JsonResponse({'success': True})
-    return render(request, 'profile.html', {'profile': request.user.profile_data})
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+import json
+
+
+@login_required
+def profile_view(request):
+    ALLOWED_FIELDS = {'first_name', 'last_name', 'email', 'bio', 'phone_number', 'address'}
+
+    if request.method == 'POST':
+        try:
+            # Get POST data
+            data = request.POST.dict()
+
+            # Remove CSRF token from data
+            data.pop('csrfmiddlewaretoken', None)
+
+            # Validate input fields
+            profile_data = {}
+            for key, value in data.items():
+                if key not in ALLOWED_FIELDS:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Invalid field: {key}'
+                    }, status=400)
+
+                # Basic validation for each field
+                if key == 'email' and value:
+                    # Simple email format validation
+                    if '@' not in value or '.' not in value:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Invalid email format'
+                        }, status=400)
+                elif key == 'phone_number' and value:
+                    # Simple phone number validation (can be enhanced)
+                    if not value.replace('+', '').replace('-', '').replace(' ', '').isdigit():
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Invalid phone number format'
+                        }, status=400)
+
+                # Clean and store the value
+                profile_data[key] = value.strip() if value else ''
+
+            # Update user profile
+            request.user.profile_data.update(profile_data)
+
+            # Update core user fields if present
+            if 'first_name' in profile_data:
+                request.user.first_name = profile_data['first_name']
+            if 'last_name' in profile_data:
+                request.user.last_name = profile_data['last_name']
+            if 'email' in profile_data:
+                request.user.email = profile_data['email']
+
+            # Save user
+            request.user.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Profile updated successfully',
+                'updated_fields': list(profile_data.keys())
+            })
+
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': 'An unexpected error occurred'
+            }, status=500)
+
+    # GET request - render profile form
+    context = {
+        'profile': request.user.profile_data,
+        'user': {
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'email': request.user.email,
+            'username': request.user.username
+        }
+    }
+    return render(request, 'profile.html', context)
 
 @csrf_exempt
 def form_design_view(request):
