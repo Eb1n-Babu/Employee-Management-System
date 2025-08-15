@@ -1,10 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+<html>
+<head><title>Form Design</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
-
+    <div id="form-builder">
+        <div id="fields-container" class="sortable">
+            {% for field in fields %}
+            <div class="field" data-id="{{ field.id }}">
+                <input type="text" class="label" value="{{ field.label }}" readonly>
+                <select class="type" disabled>
+                    <option {{ field.input_type|yesno:"selected," }} value="{{ field.input_type }}">{{ field.input_type }}</option>
+                    <option value="text">text</option><option value="number">number</option>
+                    <option value="date">date</option><option value="password">password</option>
+                </select>
+            </div>
+            {% endfor %}
+        </div>
+        <button id="add-field">Add Field</button>
+        <button id="save-form">Save</button>
+    </div>
+    <script src="/static/js/form_design.js"></script>
 </body>
 </html>
