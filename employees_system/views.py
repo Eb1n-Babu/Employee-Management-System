@@ -67,7 +67,7 @@ def form_design_view(request):
             FormField.objects.create(label=label, input_type=input_type, order=idx)
         return JsonResponse({'success': True})
 
-# ems_app/views.py (add)
+
 def employee_create_view(request, pk=None):
     fields = FormField.objects.all().order_by('order')
     if pk:
