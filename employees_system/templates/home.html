@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Employee Management System{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Welcome to the Employee Management System</h1>
+<div class="bg-white p-6 rounded shadow-md">
+    <p class="mb-4 text-lg">Manage your employee records efficiently.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="{% url 'login' %}" class="submit-btn text-center"> Login </a>
+        <a href="{% url 'register' %}" class="submit-btn text-center"> Register </a>
+    </div>
+</div>
+{% endblock %}

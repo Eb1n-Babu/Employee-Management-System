@@ -1,13 +1,16 @@
 from django.urls import path
-from .views import login_view, register_view, change_password_view, profile_view, form_design_view, employee_create_view, employee_list_view, employee_delete_view, FormFieldAPI, EmployeeAPI, UserAPI, TokenObtainPairView, TokenRefreshView , employee_detail_view
-
+from .views import login_view, register_view, change_password_view, profile_view, form_design_view, \
+    employee_create_view, employee_list_view, employee_delete_view, FormFieldAPI, EmployeeAPI, UserAPI, \
+    TokenObtainPairView, TokenRefreshView, employee_detail_view, Home
 
 urlpatterns = [
+    path('', Home ,name='home'),
+    path('welcome/', login_view, name='welcome'),
     path('login/', login_view , name='login'),
     path('register/', register_view , name='register'),
     path('change-password/', change_password_view , name='change_password'),
     path('profile/', profile_view , name='profile'),
-    path('form-design/', form_design_view),
+    path('form-design/', form_design_view ,name='form-design'),
 
     path('employee/create/', employee_create_view, name='employee_create'),
     path('employee/<int:pk>/edit/', employee_create_view, name='employee_edit'),

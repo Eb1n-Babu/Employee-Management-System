@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Employee Management System{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Welcome to the Employee Management System</h1>
+<div class="bg-white p-6 rounded shadow-md">
+    <p class="mb-4 text-lg">Manage your employee records efficiently.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="{% url 'employee_list' %}" class="submit-btn text-center">View Employees</a>
+        <a href="{% url 'employee_create' %}" class="submit-btn text-center">Add New Employee</a>
+        <a href="{% url 'profile' %}" class="submit-btn text-center">User Profile</a>
+        <a href="{% url 'change_password' %}" class="submit-btn text-center">Change Password</a>
+        <a href="{% url 'form_design' %}" class="submit-btn text-center">Design Form</a>
+        <a href="{% url ''home' %}" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-center">Logout</a>
+    </div>
+</div>
+{% endblock %}

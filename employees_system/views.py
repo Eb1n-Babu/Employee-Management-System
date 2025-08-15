@@ -1,11 +1,10 @@
-from django.shortcuts import render
+from django.shortcuts import render , redirect
 from django.http import JsonResponse
 from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-
 from .forms import EmployeeForm
 from .models import User, FormField, Employee
 from django.contrib.auth import authenticate, login, logout
@@ -13,22 +12,32 @@ from django.views.decorators.csrf import csrf_exempt
 import re
 from django.contrib.auth.decorators import login_required
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.core.exceptions import ValidationError
 from .serializers import EmployeeSerializer, FormFieldSerializer, UserSerializer
 
 
 # Create your views here.
 
+def Home(request):
+    return render(request, 'home.html')
+
+def Welcome(request):
+    return render(request, 'welcome.html')
+
 def login_view(request):
     if request.method == 'POST':
-        data = request.POST
-        user = authenticate(username=data['username'], password=data['password'])
-        if user:
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
             login(request, user)
-            return JsonResponse({'success': True})
-        return JsonResponse({'success': False, 'error': 'Invalid credentials'}, status=400)
+            return redirect('welcome.html')  # Redirect to employee_list_view
+        else:
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
     return render(request, 'login.html')
-
 
 def register_view(request):
     if request.method == 'POST':
@@ -126,7 +135,6 @@ def change_password_view(request):
             }, status=400)
 
         try:
-            # Update password
             user.set_password(new_password)
             user.save()
 
@@ -142,17 +150,6 @@ def change_password_view(request):
             }, status=400)
 
     return render(request, 'change_password.html')
-
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
-import json
 
 
 @login_required
@@ -238,19 +235,6 @@ def profile_view(request):
     }
     return render(request, 'profile.html', context)
 
-@csrf_exempt
-def form_design_view(request):
-    if request.method == 'GET':
-        fields = FormField.objects.all().order_by('order')
-        return render(request, 'form_design.html', {'fields': fields})
-    elif request.method == 'POST':
-        data = request.POST.getlist('fields[]')
-        FormField.objects.all().delete()
-        for idx, field in enumerate(data):
-            label, input_type = field.split(',')
-            FormField.objects.create(label=label, input_type=input_type, order=idx)
-        return JsonResponse({'success': True})
-
 
 @login_required
 def employee_create_view(request, pk=None):
@@ -323,6 +307,20 @@ def employee_delete_view(request, pk):
         employee.delete()
         return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
+
+@csrf_exempt
+def form_design_view(request):
+    if request.method == 'GET':
+        fields = FormField.objects.all().order_by('order')
+        return render(request, 'form_design.html', {'fields': fields})
+    elif request.method == 'POST':
+        data = request.POST.getlist('fields[]')
+        FormField.objects.all().delete()
+        for idx, field in enumerate(data):
+            label, input_type = field.split(',')
+            FormField.objects.create(label=label, input_type=input_type, order=idx)
+        return JsonResponse({'success': True})
+
 
 class FormFieldAPI(APIView):
     permission_classes = [IsAuthenticated]
