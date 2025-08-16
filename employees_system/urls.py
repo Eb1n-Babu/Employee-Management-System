@@ -1,7 +1,11 @@
 from django.urls import path
-from .views import login_view, register_view, change_password_view, profile_view, form_design_view, \
-    employee_create_view, employee_list_view, employee_delete_view, FormFieldAPI, EmployeeAPI, UserAPI, \
-    TokenObtainPairView, TokenRefreshView, employee_detail_view, Home , Welcome
+from .views import (
+    login_view, register_view, change_password_view, profile_view, form_design_view,
+    employee_create_view, employee_list_view, employee_delete_view, FormFieldAPI,
+    EmployeeAPI, UserAPI, employee_detail_view, Home, Welcome
+)
+
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('', Home ,name='home'),
