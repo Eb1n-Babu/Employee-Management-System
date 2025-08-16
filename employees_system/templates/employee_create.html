@@ -2,17 +2,44 @@
 {% load dict_tags %}
 
 {% block title %}
-{% if employee %}Edit Employee{% else %}Create Employee{% endif %}
+    {% if employee %}Edit Employee{% else %}Create Employee{% endif %}
 {% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-4">
     {% if employee %}Edit Employee{% else %}Create Employee{% endif %}
 </h1>
+
 <form method="POST" class="space-y-4" id="employeeForm">
     {% csrf_token %}
-    {{ form.as_p }}
 
+    <!-- Static model fields from EmployeeForm -->
+    <div class="form-group">
+        {{ form.first_name.label_tag }} {{ form.first_name }}
+    </div>
+    <div class="form-group">
+        {{ form.last_name.label_tag }} {{ form.last_name }}
+    </div>
+    <div class="form-group">
+        {{ form.email.label_tag }} {{ form.email }}
+    </div>
+    <div class="form-group">
+        {{ form.phone.label_tag }} {{ form.phone }}
+    </div>
+    <div class="form-group">
+        {{ form.address.label_tag }} {{ form.address }}
+    </div>
+    <div class="form-group">
+        {{ form.role.label_tag }} {{ form.role }}
+    </div>
+    <div class="form-group">
+        {{ form.designation.label_tag }} {{ form.designation }}
+    </div>
+    <div class="form-group">
+        {{ form.reporting_manager.label_tag }} {{ form.reporting_manager }}
+    </div>
+
+    <!-- Dynamic fields from FormField model -->
     {% for field in fields %}
     <div class="form-group">
         <label for="{{ field.label }}">{{ field.label }}{% if field.is_required %}*{% endif %}</label>

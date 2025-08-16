@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import render , redirect
 from django.http import JsonResponse
 from rest_framework.generics import get_object_or_404
@@ -238,67 +239,54 @@ def profile_view(request):
 
 @login_required
 def employee_create_view(request, pk=None):
-    fields = FormField.objects.all().order_by('order')
-    employee = None
-    data = {}
-
-    if pk:
-        employee = get_object_or_404(Employee, pk=pk)
-        data = employee.data
+    employee = get_object_or_404(Employee, pk=pk) if pk else None
 
     if request.method == 'POST':
-        form = EmployeeForm(request.POST)
-        post_data = {field.label: request.POST.get(field.label) for field in fields}
+        form = EmployeeForm(request.POST, instance=employee)
 
         if form.is_valid():
-            if pk:
-                employee.data = post_data
-                employee.role = form.cleaned_data['role']
-                employee.designation = form.cleaned_data['designation']
-                employee.reporting_manager = form.cleaned_data['reporting_manager']
-                employee.save()
-            else:
-                Employee.objects.create(
-                    data=post_data,
-                    created_by=request.user,
-                    role=form.cleaned_data['role'],
-                    designation=form.cleaned_data['designation'],
-                    reporting_manager=form.cleaned_data['reporting_manager']
-                )
+            emp = form.save(commit=False)
+            if not pk:
+                emp.created_by = request.user
+            emp.save()
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
     form = EmployeeForm(instance=employee)
     return render(request, 'employee_create.html', {
-        'fields': fields,
-        'data': data,
         'form': form,
         'employee': employee
     })
-
 
 @login_required
 def employee_list_view(request):
     employees = Employee.objects.all()
     search = request.GET.get('search')
-    if search:
-        employees = [
-            e for e in employees
-            if any(search.lower() in str(v).lower() for v in e.data.values()) or
-               search.lower() in e.role.lower() or
-               search.lower() in e.designation.lower() or
-               search.lower() in e.emp_id.lower() or
-               (e.reporting_manager and search.lower() in e.reporting_manager.data.get('name', '').lower())
-        ]
-    return render(request, 'employee_list.html', {'employees': employees, 'search': search})
 
+    if search:
+        search = search.lower()
+        employees = employees.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(email__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(role__icontains=search) |
+            Q(designation__icontains=search) |
+            Q(emp_id__icontains=search) |
+            Q(reporting_manager__first_name__icontains=search) |
+            Q(reporting_manager__last_name__icontains=search)
+        )
+
+    return render(request, 'employee_list.html', {
+        'employees': employees,
+        'search': search
+    })
 
 @login_required
 def employee_detail_view(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
     return render(request, 'employee_detail.html', {'employee': employee})
-
 
 @login_required
 def employee_delete_view(request, pk):

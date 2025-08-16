@@ -4,42 +4,57 @@
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-4">Employees</h1>
+
 <div class="mb-4">
     <a href="{% url 'employee_create' %}" class="submit-btn">Add New Employee</a>
 </div>
+
 <form method="GET" class="mb-4 flex space-x-2">
     <input type="text" name="search" value="{{ search|default:'' }}"
            placeholder="Search employees..." class="border rounded p-2 flex-grow">
     <button type="submit" class="submit-btn">Search</button>
 </form>
-<table>
+
+<table class="w-full border-collapse">
     <thead>
-        <tr class="bg-gray-100">
-            <th>Employee ID</th>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Designation</th>
-            <th>Reporting Manager</th>
-            <th>Actions</th>
+        <tr class="bg-gray-100 text-left">
+            <th class="p-2 border">Employee ID</th>
+            <th class="p-2 border">Name</th>
+            <th class="p-2 border">Email</th>
+            <th class="p-2 border">Role</th>
+            <th class="p-2 border">Designation</th>
+            <th class="p-2 border">Reporting Manager</th>
+            <th class="p-2 border">Actions</th>
         </tr>
     </thead>
     <tbody>
         {% for employee in employees %}
-        <tr>
-            <td>{{ employee.emp_id }}</td>
-            <td>{{ employee.data.name|default:'N/A' }}</td>
-            <td>{{ employee.role }}</td>
-            <td>{{ employee.designation }}</td>
-            <td>{{ employee.reporting_manager.data.name|default:'None' }}</td>
-            <td>
-                <a href="{% url 'employee_edit' employee.pk %}" class="text-blue-500">Edit</a>
-                <a href="{% url 'employee_detail' employee.pk %}" class="text-blue-500 ml-2">View</a>
-                <a href="#" onclick="deleteEmployee({{ employee.pk }})" class="text-red-500 ml-2">Delete</a>
+        <tr class="border-b">
+            <td class="p-2">{{ employee.emp_id }}</td>
+            <td class="p-2">{{ employee.first_name }} {{ employee.last_name }}</td>
+            <td class="p-2">
+                <a href="mailto:{{ employee.email }}" class="text-blue-600 hover:underline">
+                    {{ employee.email }}
+                </a>
+            </td>
+            <td class="p-2">{{ employee.role }}</td>
+            <td class="p-2">{{ employee.designation }}</td>
+            <td class="p-2">
+                {% if employee.reporting_manager %}
+                    {{ employee.reporting_manager.first_name }} {{ employee.reporting_manager.last_name }}
+                {% else %}
+                    None
+                {% endif %}
+            </td>
+            <td class="p-2">
+                <a href="{% url 'employee_edit' employee.pk %}" class="text-blue-500 hover:underline">Edit</a>
+                <a href="{% url 'employee_detail' employee.pk %}" class="text-blue-500 hover:underline ml-2">View</a>
+                <a href="#" onclick="deleteEmployee({{ employee.pk }})" class="text-red-500 hover:underline ml-2">Delete</a>
             </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6" class="text-center">No employees found</td>
+            <td colspan="7" class="text-center p-4">No employees found</td>
         </tr>
         {% endfor %}
     </tbody>
