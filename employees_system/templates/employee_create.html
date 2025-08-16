@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load dict_tags %}
 
 {% block title %}
 {% if employee %}Edit Employee{% else %}Create Employee{% endif %}
@@ -18,17 +19,17 @@
         {% if field.field_type == 'select' %}
             <select name="{{ field.label }}" id="{{ field.label }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
                 {% for option in field.options %}
-                    <option value="{{ option }}" {% if data[field.label] == option %}selected{% endif %}>
+                    <option value="{{ option }}" {% if data|get:field.label == option %}selected{% endif %}>
                         {{ option }}
                     </option>
                 {% endfor %}
             </select>
         {% elif field.field_type == 'date' %}
             <input type="date" name="{{ field.label }}" id="{{ field.label }}"
-                value="{{ data[field.label] }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
+                value="{{ data|get:field.label }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
         {% else %}
             <input type="{{ field.field_type }}" name="{{ field.label }}" id="{{ field.label }}"
-                value="{{ data[field.label] }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
+                value="{{ data|get:field.label }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
         {% endif %}
     </div>
     {% endfor %}
@@ -55,7 +56,7 @@ document.getElementById('employeeForm').addEventListener('submit', async functio
         });
         const data = await response.json();
         if (data.success) {
-            window.location.href = '{% url 'employee_list' %}';
+            window.location.href = '{% url "employee_list" %}';
         } else {
             alert('Error: ' + JSON.stringify(data.errors));
         }
