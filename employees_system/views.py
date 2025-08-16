@@ -34,7 +34,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('welcome.html')  # Redirect to employee_list_view
+            return redirect('welcome')  # Redirect to employee_list_view
         else:
             return render(request, 'login.html', {'error': 'Invalid credentials'})
     return render(request, 'login.html')
