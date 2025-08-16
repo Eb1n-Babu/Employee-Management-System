@@ -137,6 +137,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'employees_system.User'
 
+
 # settings.py
 LOGIN_URL = '/login/'
 
