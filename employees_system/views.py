@@ -1,24 +1,23 @@
+from django import forms
 from django.db.models import Q
 from django.shortcuts import render , redirect
-from django.http import JsonResponse
 from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .forms import EmployeeForm
 from .models import User, FormField, Employee
 from django.contrib.auth import authenticate, login, logout
-from django.views.decorators.csrf import csrf_exempt
 import re
-from django.contrib.auth.decorators import login_required
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 from .serializers import EmployeeSerializer, FormFieldSerializer, UserSerializer
-
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .forms import EmployeeForm
+from .models import Employee
+import json
 
 # Create your views here.
 
@@ -239,25 +238,37 @@ def profile_view(request):
 
 @login_required
 def employee_create_view(request, pk=None):
+    """
+    View to create or update an employee using the standard EmployeeForm.
+    Requires user to be logged in.
+    """
     employee = get_object_or_404(Employee, pk=pk) if pk else None
 
     if request.method == 'POST':
         form = EmployeeForm(request.POST, instance=employee)
-
         if form.is_valid():
             emp = form.save(commit=False)
-            if not pk:
+            if not pk:  # New employee
                 emp.created_by = request.user
             emp.save()
-            return JsonResponse({'success': True})
+            return JsonResponse({
+                'success': True,
+                'message': 'Employee saved successfully',
+                'employee_id': emp.pk
+            })
         else:
-            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            }, status=400)
 
     form = EmployeeForm(instance=employee)
     return render(request, 'employee_create.html', {
         'form': form,
-        'employee': employee
+        'employee': employee,
+        'form_heading': form.heading
     })
+
 
 @login_required
 def employee_list_view(request):
@@ -296,19 +307,76 @@ def employee_delete_view(request, pk):
         return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
 
+
 @csrf_exempt
 def form_design_view(request):
-    if request.method == 'GET':
-        fields = FormField.objects.all().order_by('order')
-        return render(request, 'form_design.html', {'fields': fields})
-    elif request.method == 'POST':
-        data = request.POST.getlist('fields[]')
-        FormField.objects.all().delete()
-        for idx, field in enumerate(data):
-            label, input_type = field.split(',')
-            FormField.objects.create(label=label, input_type=input_type, order=idx)
-        return JsonResponse({'success': True})
+    """
+    View to handle dynamic form creation with custom fields and heading.
+    GET: Renders the form designer template.
+    POST: Saves form data via JSON.
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            extra_fields = data.get('extra_fields', {})
+            heading = data.get('heading', 'Employee Information Form')
+            form_data = data.get('form_data', {})
 
+            form = EmployeeForm(
+                data=form_data,
+                extra_fields=extra_fields,
+                heading=heading
+            )
+
+            if form.is_valid():
+                employee = form.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Employee created successfully',
+                    'data': {
+                        'id': employee.pk,
+                        'first_name': employee.first_name,
+                        'last_name': employee.last_name,
+                        'email': employee.email,
+                    }
+                })
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'errors': form.errors
+                }, status=400)
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }, status=400)
+
+    elif request.method == 'GET':
+        # Example extra fields for the form designer
+        extra_fields = {
+        }
+        heading = "Custom Employee Form"
+        form = EmployeeForm(extra_fields=extra_fields, heading=heading)
+        form_fields = [
+            {
+                'name': field_name,
+                'label': field.label,
+                'type': field.widget.input_type if hasattr(field.widget, 'input_type') else 'textarea' if isinstance(field.widget, forms.Textarea) else 'select' if isinstance(field.widget, forms.Select) else 'text',
+                'required': field.required
+            } for field_name, field in form.fields.items()
+        ]
+
+        return render(request, 'form_design.html', {
+            'form': form,
+            'form_heading': form.heading,
+            'form_fields': form_fields
+        })
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Method not allowed'
+    }, status=405)
 
 class FormFieldAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -322,6 +390,8 @@ class FormFieldAPI(APIView):
             FormFieldSerializer(data=field).is_valid(raise_exception=True)
             FormField.objects.create(**field)
         return Response({'success': True})
+
+
 
 class EmployeeAPI(APIView):
     permission_classes = [IsAuthenticated]

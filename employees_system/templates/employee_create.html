@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load dict_tags %}
 
 {% block title %}
     {% if employee %}Edit Employee{% else %}Create Employee{% endif %}
@@ -7,61 +6,63 @@
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-4">
-    {% if employee %}Edit Employee{% else %}Create Employee{% endif %}
+    {{ form_heading|default:"Employee Information Form" }}
 </h1>
 
-<form method="POST" class="space-y-4" id="employeeForm">
+<form method="POST" class="space-y-4" id="employeeForm" action="{% url 'employee_create' %}{% if employee %}{% url 'employee_edit' pk=employee.pk %}{% endif %}">
     {% csrf_token %}
 
-    <!-- Static model fields from EmployeeForm -->
+    <!-- Standard EmployeeForm fields -->
     <div class="form-group">
         {{ form.first_name.label_tag }} {{ form.first_name }}
+        {% if form.first_name.errors %}
+            <p class="text-red-500 text-sm">{{ form.first_name.errors }}</p>
+        {% endif %}
     </div>
     <div class="form-group">
         {{ form.last_name.label_tag }} {{ form.last_name }}
+        {% if form.last_name.errors %}
+            <p class="text-red-500 text-sm">{{ form.last_name.errors }}</p>
+        {% endif %}
     </div>
     <div class="form-group">
         {{ form.email.label_tag }} {{ form.email }}
+        {% if form.email.errors %}
+            <p class="text-red-500 text-sm">{{ form.email.errors }}</p>
+        {% endif %}
     </div>
     <div class="form-group">
         {{ form.phone.label_tag }} {{ form.phone }}
+        {% if form.phone.errors %}
+            <p class="text-red-500 text-sm">{{ form.phone.errors }}</p>
+        {% endif %}
     </div>
     <div class="form-group">
         {{ form.address.label_tag }} {{ form.address }}
+        {% if form.address.errors %}
+            <p class="text-red-500 text-sm">{{ form.address.errors }}</p>
+        {% endif %}
     </div>
     <div class="form-group">
         {{ form.role.label_tag }} {{ form.role }}
+        {% if form.role.errors %}
+            <p class="text-red-500 text-sm">{{ form.role.errors }}</p>
+        {% endif %}
     </div>
     <div class="form-group">
         {{ form.designation.label_tag }} {{ form.designation }}
+        {% if form.designation.errors %}
+            <p class="text-red-500 text-sm">{{ form.designation.errors }}</p>
+        {% endif %}
     </div>
     <div class="form-group">
         {{ form.reporting_manager.label_tag }} {{ form.reporting_manager }}
-    </div>
-
-    <!-- Dynamic fields from FormField model -->
-    {% for field in fields %}
-    <div class="form-group">
-        <label for="{{ field.label }}">{{ field.label }}{% if field.is_required %}*{% endif %}</label>
-        {% if field.field_type == 'select' %}
-            <select name="{{ field.label }}" id="{{ field.label }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
-                {% for option in field.options %}
-                    <option value="{{ option }}" {% if data|get:field.label == option %}selected{% endif %}>
-                        {{ option }}
-                    </option>
-                {% endfor %}
-            </select>
-        {% elif field.field_type == 'date' %}
-            <input type="date" name="{{ field.label }}" id="{{ field.label }}"
-                value="{{ data|get:field.label }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
-        {% else %}
-            <input type="{{ field.field_type }}" name="{{ field.label }}" id="{{ field.label }}"
-                value="{{ data|get:field.label }}" class="border rounded p-2" {% if field.is_required %}required{% endif %}>
+        {% if form.reporting_manager.errors %}
+            <p class="text-red-500 text-sm">{{ form.reporting_manager.errors }}</p>
         {% endif %}
     </div>
-    {% endfor %}
 
-    <button type="submit" class="submit-btn">
+    <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
         {% if employee %}Update{% else %}Create{% endif %}
     </button>
 </form>
