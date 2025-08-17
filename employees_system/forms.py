@@ -6,7 +6,6 @@ from employees_system.models import Employee
 User = get_user_model()
 
 class EmployeeForm(forms.ModelForm):
-    # Define choices for role and designation
     ROLE_CHOICES = [
         ('developer', 'Developer'),
         ('manager', 'Manager'),
@@ -23,12 +22,9 @@ class EmployeeForm(forms.ModelForm):
     def __init__(self, *args, form_fields=None, heading='Employee Information Form', **kwargs):
         super().__init__(*args, **kwargs)
         self.heading = heading
-        # Set choices for role and designation fields
         self.fields['role'].choices = self.ROLE_CHOICES
         self.fields['designation'].choices = self.DESIGNATION_CHOICES
-        # Populate reporting_manager choices (example)
         self.fields['reporting_manager'].queryset = User.objects.all()
-        # Add dynamic fields
         if form_fields:
             for field in form_fields:
                 self.fields[field.label.lower().replace(' ', '_')] = self.create_field(field)
@@ -62,7 +58,7 @@ class EmployeeForm(forms.ModelForm):
             )
 
     class Meta:
-        model = Employee  # Replace with your actual Employee model
+        model = Employee
         fields = [
             'first_name', 'last_name', 'email', 'phone',
             'address', 'role', 'designation', 'reporting_manager'
