@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import render , redirect
 from rest_framework.generics import get_object_or_404
@@ -555,32 +556,70 @@ class FormFieldAPI(APIView):
             FormField.objects.create(**field)
         return Response({'success': True})
 
+
 class EmployeeAPI(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request, pk=None):
         if pk:
-            return Response(EmployeeSerializer(Employee.objects.get(pk=pk)).data)
+            try:
+                employee = Employee.objects.get(pk=pk)
+                return Response(EmployeeSerializer(employee).data)
+            except Employee.DoesNotExist:
+                return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+
         employees = Employee.objects.all()
         search = request.query_params.get('search')
         if search:
-            employees = [e for e in employees if any(search.lower() in str(v).lower() for v in e.data.values())]
+            employees = employees.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(address__icontains=search) |
+                Q(role__icontains=search) |
+                Q(designation__icontains=search) |
+                Q(extra_data__contains=search)
+            )
         return Response(EmployeeSerializer(employees, many=True).data)
+
     def post(self, request):
-        serializer = EmployeeSerializer(data={'data': request.data, 'created_by': request.user.id})
+        serializer = EmployeeSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=400)
+            try:
+                serializer.save(created_by=request.user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except IntegrityError:
+                return Response(
+                    {"error": "An employee with this email already exists."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def put(self, request, pk):
-        employee = Employee.objects.get(pk=pk)
-        serializer = EmployeeSerializer(employee, data={'data': request.data}, partial=True)
+        try:
+            employee = Employee.objects.get(pk=pk)
+        except Employee.DoesNotExist:
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EmployeeSerializer(employee, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+            try:
+                serializer.save()
+                return Response(serializer.data)
+            except IntegrityError:
+                return Response(
+                    {"error": "An employee with this email already exists."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def delete(self, request, pk):
-        Employee.objects.get(pk=pk).delete()
-        return Response(status=204)
+        try:
+            employee = Employee.objects.get(pk=pk)
+            employee.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Employee.DoesNotExist:
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class UserAPI(APIView):
     def post(self, request):

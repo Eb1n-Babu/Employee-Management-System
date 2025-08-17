@@ -1,8 +1,13 @@
-_______________________________API Testing with Postman  Register a User_______________________________
+
+
+
+
+
+______________________________API Testing with Postman  Register a User_______________________________
 
 **Endpoint: POST /api/register/**
 
-**Request Body:**
+Request Body:
 
 json
 `{
@@ -34,25 +39,71 @@ json
 
 Action: Use the access token in the Authorization header (Bearer your_access_token) for subsequent requests.
 
-================================
+================================success
 
-Get Form Fields
+**Get Form Fields**
 
 Endpoint: GET /api/form-fields/
 Headers: Authorization: Bearer your_access_token
 Response:
-json[
-    {"id": 1, "label": "Name", "field_type": "text", "order": 0, "is_required": true, "options": null},
-    {"id": 2, "label": "Email", "field_type": "email", "order": 1, "is_required": true, "options": null}
-]
 
+`json[
+    {
+        "id": 3,
+        "label": "salary",
+        "field_type": "text",
+        "order": 0,
+        "is_required": false,
+        "options": [],
+        "created_by": 3
+    },
+    {
+        "id": 10,
+        "label": "salary",
+        "field_type": "text",
+        "order": 0,
+        "is_required": false,
+        "options": [],
+        "created_by": 1
+    },
+    {
+        "id": 11,
+        "label": "dddeddd",
+        "field_type": "text",
+        "order": 1,
+        "is_required": false,
+        "options": [],
+        "created_by": 1
+    },
+    {
+        "id": 12,
+        "label": "dddddd",
+        "field_type": "text",
+        "order": 2,
+        "is_required": false,
+        "options": [],
+        "created_by": 1
+    },
+    {
+        "id": 13,
+        "label": "defr3frf",
+        "field_type": "text",
+        "order": 3,
+        "is_required": false,
+        "options": [],
+        "created_by": 1
+    }
+`
 
-Get All Employees
+=======================================================================success
+
+**Get All Employees**
 
 Endpoint: GET /api/employees/
 Headers: Authorization: Bearer your_access_token
 Response:
-json[
+
+`json[
     {
         "id": 1,
         "emp_id": "a1b2c3d4e5",
@@ -76,14 +127,15 @@ json[
         "reporting_manager": 1
     }
 ]
+`
+===================================================success
+**Get Specific Employee**
 
-
-Get Specific Employee
-
-Endpoint: GET /api/employees/1/
+Endpoint: GET /api/employees/5/
 Headers: Authorization: Bearer your_access_token
 Response:
-json{
+
+`json{
     "id": 1,
     "emp_id": "a1b2c3d4e5",
     "data": {"name": "John Doe"},
@@ -94,63 +146,87 @@ json{
     "designation": "Junior Manager",
     "reporting_manager": null
 }
+`
 
-
-Create New Employee
+=========================================
+**Create New Employee**
 
 Endpoint: POST /api/employees/
 Headers: Authorization: Bearer your_access_token
 Request Body:
+`
 json{
-    "data": {"name": "Mike Johnson"},
-    "role": "Engineer",
-    "designation": "Senior Engineer"
-}
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1234567890",
+  "address": "123 Main St",
+  "role": "Developer",
+  "designation": "Senior Engineer"
+}`
 
 Response:
-json{
-    "id": 3,
-    "emp_id": "k1l2m3n4o5",
-    "data": {"name": "Mike Johnson"},
-    "created_by": 1,
-    "created_at": "2025-08-15T14:35:02Z",
-    "updated_at": "2025-08-15T14:35:02Z",
-    "role": "Engineer",
+
+`json
+{
+    "id": 11,
+    "emp_id": "ffb77d766b",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "address": "123 Main St",
+    "role": "Developer",
     "designation": "Senior Engineer",
-    "reporting_manager": null
+    "reporting_manager": null,
+    "created_by": 1,
+    "created_at": "2025-08-17T18:13:51.657884Z",
+    "updated_at": "2025-08-17T18:13:51.659602Z",
+    "extra_data": {}
 }
+`
+=================================success
 
-
-Update Employee
+**Update Employee**
 
 Endpoint: PUT /api/employees/3/
 Headers: Authorization: Bearer your_access_token
 Request Body:
-json{
-    "data": {"name": "Mike Johnson Updated"},
-    "role": "Senior Engineer"
-}
 
+`json
+{
+    "role": "Senior Engineer ffrf efff"
+}
+`
 Response:
-json{
-    "id": 3,
-    "emp_id": "k1l2m3n4o5",
-    "data": {"name": "Mike Johnson Updated"},
-    "created_by": 1,
-    "created_at": "2025-08-15T14:35:02Z",
-    "updated_at": "2025-08-15T14:35:03Z",
-    "role": "Senior Engineer",
+
+`json
+{
+    "id": 11,
+    "emp_id": "ffb77d766b",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "address": "123 Main St",
+    "role": "Senior Engineer ffrf efff",
     "designation": "Senior Engineer",
-    "reporting_manager": null
-}
+    "reporting_manager": null,
+    "created_by": 1,
+    "created_at": "2025-08-17T18:13:51.657884Z",
+    "updated_at": "2025-08-17T18:22:05.329734Z",
+    "extra_data": {}
+}`
+============================success
 
-
-Delete Employee
+**Delete Employee**
 
 Endpoint: DELETE /api/employees/3/
 Headers: Authorization: Bearer your_access_token
 Response: Status 204 (No Content)
 Action: Verify employee is removed (GET /api/employees/ should not include ID 3).
+
+=========================================== success
 
 Full Output Summary
 
