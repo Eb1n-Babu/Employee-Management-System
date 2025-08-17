@@ -239,36 +239,132 @@ def profile_view(request):
 @login_required
 def employee_create_view(request, pk=None):
     """
-    View to create or update an employee using the standard EmployeeForm.
+    View to create or update an employee using the EmployeeForm with dynamic fields from FormField.
     Requires user to be logged in.
     """
     employee = get_object_or_404(Employee, pk=pk) if pk else None
 
     if request.method == 'POST':
-        form = EmployeeForm(request.POST, instance=employee)
-        if form.is_valid():
-            emp = form.save(commit=False)
-            if not pk:  # New employee
-                emp.created_by = request.user
-            emp.save()
+        try:
+            # Check if request body contains JSON (for API-like submissions)
+            if request.content_type == 'application/json':
+                import json
+                data = json.loads(request.body)
+                form_data = data.get('form_data', {})
+                extra_fields = data.get('extra_fields', {})
+                heading = data.get('heading', 'Employee Information Form')
+                form_fields = [
+                    FormField(
+                        label=config['label'],
+                        field_type=config['type'],
+                        is_required=config.get('required', False),
+                        options=config.get('options', []),
+                        order=i
+                    ) for i, (name, config) in enumerate(extra_fields.items())
+                ]
+            else:
+                # Use saved FormField instances
+                form_fields = FormField.objects.filter(
+                    created_by=request.user
+                ).order_by('order')
+                heading = 'Employee Information Form'
+                form_data = request.POST
+
+            form = EmployeeForm(
+                data=form_data,
+                instance=employee,
+                form_fields=form_fields,
+                heading=heading
+            )
+
+            if form.is_valid():
+                emp = form.save(commit=False)
+                if not pk:  # New employee
+                    emp.created_by = request.user
+                emp.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Employee saved successfully',
+                    'data': {
+                        'id': emp.pk,
+                        'first_name': emp.first_name,
+                        'last_name': emp.last_name,
+                        'email': emp.email,
+                    }
+                })
+            else:
+                # For non-AJAX POST, render the form with errors
+                if request.content_type != 'application/json':
+                    form_fields_context = [
+                        {
+                            'name': field_name,
+                            'label': field.label,
+                            'type': field.widget.input_type if hasattr(field.widget,
+                                                                       'input_type') else 'textarea' if isinstance(
+                                field.widget, forms.Textarea) else 'select' if isinstance(field.widget,
+                                                                                          forms.Select) else 'date' if isinstance(
+                                field.widget, forms.DateInput) else 'text',
+                            'required': field.required,
+                            'initial': form[field_name].value() or form.initial.get(field_name, '') or (
+                                employee.extra_data.get(field_name, '') if employee else ''),
+                            'errors': form[field_name].errors,
+                            'options': field.choices if isinstance(field, forms.ChoiceField) else []
+                        } for field_name, field in form.fields.items()
+                    ]
+                    return render(request, 'employee_create.html', {
+                        'form': form,
+                        'employee': employee,
+                        'form_heading': form.heading,
+                        'form_fields': form_fields_context
+                    })
+                return JsonResponse({
+                    'status': 'error',
+                    'errors': form.errors
+                }, status=400)
+
+        except json.JSONDecodeError:
             return JsonResponse({
-                'success': True,
-                'message': 'Employee saved successfully',
-                'employee_id': emp.pk
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'errors': form.errors
+                'status': 'error',
+                'message': 'Invalid JSON data'
             }, status=400)
 
-    form = EmployeeForm(instance=employee)
-    return render(request, 'employee_create.html', {
-        'form': form,
-        'employee': employee,
-        'form_heading': form.heading
-    })
+    elif request.method == 'GET':
+        # Use saved FormField instances
+        form_fields = FormField.objects.filter(
+            created_by=request.user
+        ).order_by('order')
+        heading = 'Employee Information Form'
 
+        form = EmployeeForm(instance=employee, form_fields=form_fields, heading=heading)
+
+        # Generate form field metadata with initial values
+        form_fields_context = [
+            {
+                'name': field_name,
+                'label': field.label,
+                'type': field.widget.input_type if hasattr(field.widget, 'input_type') else 'textarea' if isinstance(
+                    field.widget, forms.Textarea) else 'select' if isinstance(field.widget,
+                                                                              forms.Select) else 'date' if isinstance(
+                    field.widget, forms.DateInput) else 'text',
+                'required': field.required,
+                'initial': form.initial.get(field_name, '') or (
+                    employee.extra_data.get(field_name, '') if employee else ''),
+                'errors': [],
+                'options': field.choices if isinstance(field, forms.ChoiceField) else []
+            } for field_name, field in form.fields.items()
+        ]
+
+        return render(request, 'employee_create.html', {
+            'form': form,
+            'employee': employee,
+            'form_heading': form.heading,
+            'form_fields': form_fields_context
+        })
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Method not allowed'
+    }, status=405)
 
 @login_required
 def employee_list_view(request):
@@ -308,13 +404,27 @@ def employee_delete_view(request, pk):
     return JsonResponse({'success': False}, status=400)
 
 
+
+
+from django import forms
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
+import json
+
 @csrf_exempt
 def form_design_view(request):
     """
     View to handle dynamic form creation with custom fields and heading.
-    GET: Renders the form designer template.
-    POST: Saves form data via JSON.
+    GET: Renders the form designer template with saved fields.
+    POST: Saves form fields to FormField model and optionally employee data.
     """
+    # Define default fields to prevent conflicts
+    DEFAULT_FIELDS = [
+        'first_name', 'last_name', 'email', 'phone',
+        'address', 'role', 'designation', 'reporting_manager'
+    ]
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -322,29 +432,61 @@ def form_design_view(request):
             heading = data.get('heading', 'Employee Information Form')
             form_data = data.get('form_data', {})
 
-            form = EmployeeForm(
-                data=form_data,
-                extra_fields=extra_fields,
-                heading=heading
-            )
+            # Validate that extra_fields do not include default fields
+            for field_name in extra_fields.keys():
+                if field_name in DEFAULT_FIELDS:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f"Field '{field_name}' is a default field and cannot be added as a custom field."
+                    }, status=400)
 
-            if form.is_valid():
-                employee = form.save()
-                return JsonResponse({
-                    'status': 'success',
-                    'message': 'Employee created successfully',
-                    'data': {
-                        'id': employee.pk,
-                        'first_name': employee.first_name,
-                        'last_name': employee.last_name,
-                        'email': employee.email,
-                    }
-                })
+            # Delete existing FormField instances for the user
+            if request.user.is_authenticated:
+                FormField.objects.filter(created_by=request.user).delete()
+
+            # Save new FormField instances
+            for order, (name, config) in enumerate(extra_fields.items()):
+                FormField.objects.create(
+                    label=config['label'],
+                    field_type=config['type'],
+                    is_required=config.get('required', False),
+                    options=config.get('options', []),
+                    order=order,
+                    created_by=request.user if request.user.is_authenticated else None
+                )
+
+            # Process employee form data if provided
+            if form_data:
+                form_fields = FormField.objects.filter(
+                    created_by=request.user if request.user.is_authenticated else None
+                ).order_by('order')
+                form = EmployeeForm(
+                    data=form_data,
+                    form_fields=form_fields,
+                    heading=heading
+                )
+                if form.is_valid():
+                    employee = form.save()
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Employee and form design saved successfully',
+                        'data': {
+                            'id': employee.pk,
+                            'first_name': employee.first_name,
+                            'last_name': employee.last_name,
+                            'email': employee.email
+                        }
+                    })
+                else:
+                    return JsonResponse({
+                        'status': 'error',
+                        'errors': form.errors
+                    }, status=400)
             else:
                 return JsonResponse({
-                    'status': 'error',
-                    'errors': form.errors
-                }, status=400)
+                    'status': 'success',
+                    'message': 'Form design saved successfully'
+                })
 
         except json.JSONDecodeError:
             return JsonResponse({
@@ -353,30 +495,56 @@ def form_design_view(request):
             }, status=400)
 
     elif request.method == 'GET':
-        # Example extra fields for the form designer
-        extra_fields = {
-        }
+        # Retrieve saved dynamic fields
+        dynamic_fields = FormField.objects.filter(
+            created_by=request.user if request.user.is_authenticated else None
+        ).order_by('order')
         heading = "Custom Employee Form"
-        form = EmployeeForm(extra_fields=extra_fields, heading=heading)
-        form_fields = [
+
+        form = EmployeeForm(form_fields=dynamic_fields, heading=heading)
+
+        # Prepare dynamic fields for context
+        dynamic_fields_context = [
+            {
+                'name': field.label.lower().replace(' ', '_'),
+                'label': field.label,
+                'type': field.field_type,
+                'required': field.is_required,
+                'options': field.options or []
+            } for field in dynamic_fields
+        ]
+
+        # Prepare default fields for context
+        default_fields_context = [
             {
                 'name': field_name,
                 'label': field.label,
-                'type': field.widget.input_type if hasattr(field.widget, 'input_type') else 'textarea' if isinstance(field.widget, forms.Textarea) else 'select' if isinstance(field.widget, forms.Select) else 'text',
-                'required': field.required
-            } for field_name, field in form.fields.items()
+                'type': (
+                    field.widget.input_type if hasattr(field.widget, 'input_type')
+                    else 'textarea' if isinstance(field.widget, forms.Textarea)
+                    else 'select' if isinstance(field.widget, forms.Select)
+                    else 'text'
+                ),
+                'required': field.required,
+                'options': (
+                    form.fields[field_name].choices if field_name in ['role', 'designation', 'reporting_manager']
+                    else []
+                )
+            } for field_name, field in form.fields.items() if field_name in form.Meta.fields
         ]
 
         return render(request, 'form_design.html', {
             'form': form,
-            'form_heading': form.heading,
-            'form_fields': form_fields
+            'form_heading': heading,
+            'default_fields': default_fields_context,
+            'dynamic_fields': dynamic_fields_context
         })
 
     return JsonResponse({
         'status': 'error',
         'message': 'Method not allowed'
     }, status=405)
+
 
 class FormFieldAPI(APIView):
     permission_classes = [IsAuthenticated]

@@ -1,86 +1,75 @@
 from django import forms
-from .models import Employee
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+from employees_system.models import Employee
 
+User = get_user_model()
 
 class EmployeeForm(forms.ModelForm):
+    # Define choices for role and designation
     ROLE_CHOICES = [
         ('developer', 'Developer'),
         ('manager', 'Manager'),
-        ('hr', 'HR'),
         ('analyst', 'Analyst'),
+        ('designer', 'Designer'),
     ]
-
     DESIGNATION_CHOICES = [
         ('junior', 'Junior'),
         ('senior', 'Senior'),
         ('lead', 'Lead'),
-        ('director', 'Director'),
+        ('intern', 'Intern'),
     ]
 
-    role = forms.ChoiceField(choices=ROLE_CHOICES, widget=forms.Select(attrs={
-        'class': 'border rounded p-2 w-full'
-    }))
+    def __init__(self, *args, form_fields=None, heading='Employee Information Form', **kwargs):
+        super().__init__(*args, **kwargs)
+        self.heading = heading
+        # Set choices for role and designation fields
+        self.fields['role'].choices = self.ROLE_CHOICES
+        self.fields['designation'].choices = self.DESIGNATION_CHOICES
+        # Populate reporting_manager choices (example)
+        self.fields['reporting_manager'].queryset = User.objects.all()
+        # Add dynamic fields
+        if form_fields:
+            for field in form_fields:
+                self.fields[field.label.lower().replace(' ', '_')] = self.create_field(field)
 
-    designation = forms.ChoiceField(choices=DESIGNATION_CHOICES, widget=forms.Select(attrs={
-        'class': 'border rounded p-2 w-full'
-    }))
+    def create_field(self, field):
+        field_type = field.field_type
+        if field_type == 'select':
+            return forms.ChoiceField(
+                label=field.label,
+                choices=[(opt, opt) for opt in field.options],
+                required=field.is_required
+            )
+        elif field_type == 'textarea':
+            return forms.CharField(
+                label=field.label,
+                widget=forms.Textarea,
+                required=field.is_required
+            )
+        elif field_type == 'date':
+            return forms.DateField(
+                label=field.label,
+                widget=forms.DateInput(attrs={'type': 'date'}),
+                required=field.is_required
+            )
+        else:
+            widget = getattr(forms.widgets, f"{field_type.capitalize()}Input", forms.TextInput)()
+            return forms.CharField(
+                label=field.label,
+                widget=widget,
+                required=field.is_required
+            )
 
     class Meta:
-        model = Employee
+        model = Employee  # Replace with your actual Employee model
         fields = [
-            'first_name',
-            'last_name',
-            'email',
-            'phone',
-            'address',
-            'role',
-            'designation',
-            'reporting_manager'
+            'first_name', 'last_name', 'email', 'phone',
+            'address', 'role', 'designation', 'reporting_manager'
         ]
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'border rounded p-2 w-full'}),
-            'last_name': forms.TextInput(attrs={'class': 'border rounded p-2 w-full'}),
-            'email': forms.EmailInput(attrs={'class': 'border rounded p-2 w-full'}),
-            'phone': forms.TextInput(attrs={'class': 'border rounded p-2 w-full'}),
-            'address': forms.Textarea(attrs={'class': 'border rounded p-2 w-full', 'rows': 3}),
-            'reporting_manager': forms.Select(attrs={'class': 'border rounded p-2 w-full'}),
+            'role': forms.Select(),
+            'designation': forms.Select(),
+            'reporting_manager': forms.Select(),
+            'address': forms.Textarea(),
         }
-
-    def __init__(self, *args, extra_fields=None, heading=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.heading = heading if heading else "Employee Information Form"
-
-        # Prevent self-assignment in reporting_manager
-        if self.instance and self.instance.pk:
-            self.fields['reporting_manager'].queryset = Employee.objects.exclude(pk=self.instance.pk)
-        else:
-            self.fields['reporting_manager'].queryset = Employee.objects.all()
-
-        # Add dynamic fields if provided
-        if extra_fields:
-            for field_name, field_config in extra_fields.items():
-                field_type = field_config.get('type', 'text')
-                if field_type == 'text':
-                    self.fields[field_name] = forms.CharField(
-                        label=field_config.get('label', field_name.capitalize()),
-                        required=field_config.get('required', False),
-                        widget=forms.TextInput(attrs={'class': 'border rounded p-2 w-full'})
-                    )
-                elif field_type == 'email':
-                    self.fields[field_name] = forms.EmailField(
-                        label=field_config.get('label', field_name.capitalize()),
-                        required=field_config.get('required', False),
-                        widget=forms.EmailInput(attrs={'class': 'border rounded p-2 w-full'})
-                    )
-                elif field_type == 'textarea':
-                    self.fields[field_name] = forms.CharField(
-                        label=field_config.get('label', field_name.capitalize()),
-                        required=field_config.get('required', False),
-                        widget=forms.Textarea(attrs={'class': 'border rounded p-2 w-full', 'rows': 3})
-                    )
-                elif field_type == 'number':
-                    self.fields[field_name] = forms.FloatField(
-                        label=field_config.get('label', field_name.capitalize()),
-                        required=field_config.get('required', False),
-                        widget=forms.NumberInput(attrs={'class': 'border rounded p-2 w-full'})
-                    )

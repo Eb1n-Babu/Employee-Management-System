@@ -10,95 +10,91 @@
 
     <!-- Field Input Section -->
     <div class="flex gap-4 mb-6">
-        <input type="text" id="fieldLabel" placeholder="Field Label"
-               class="border p-2 rounded w-1/2">
-        <select id="fieldType" class="border p-2 rounded w-1/3">
+        <input type="text" id="fieldLabel" placeholder="Field Label" class="border p-2 rounded w-1/3">
+        <select id="fieldType" class="border p-2 rounded w-1/4">
             <option value="text">Text</option>
             <option value="email">Email</option>
             <option value="textarea">Textarea</option>
             <option value="number">Number</option>
+            <option value="date">Date</option>
+            <option value="select">Dropdown</option>
         </select>
         <input type="checkbox" id="fieldRequired" class="mr-2">
         <label for="fieldRequired">Required</label>
+        <input type="text" id="fieldOptions" placeholder="Dropdown options (comma-separated)" class="border p-2 rounded w-1/3" style="display: none;">
         <button onclick="addField()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Add Field</button>
     </div>
 
     <!-- Field List -->
-    <ul id="field-list" class="mb-6 list-disc pl-5">
-        {% for field in form_fields %}
-            <li data-name="{{ field.name }}">{{ field.label }} ({{ field.type }}) {% if field.required %}(Required){% endif %}</li>
-        {% endfor %}
-    </ul>
+    <ul id="field-list" class="mb-6"></ul>
 
     <!-- Save Button -->
     <button onclick="saveFields()" class="bg-green-600 text-white px-4 py-2 rounded mb-8 hover:bg-green-700">💾 Save Form Design</button>
 
     <!-- Form Preview -->
     <form id="formPreview" class="space-y-4">
-        <!-- Standard EmployeeForm Fields -->
-        {% for field in form_fields %}
-            {% if field.name in 'first_name,last_name,email,phone,address,role,designation,reporting_manager' %}
-                <div class="form-group">
-                    <label class="block font-medium mb-1" for="{{ field.name }}">{{ field.label }}{% if field.required %}*{% endif %}</label>
-                    {% if field.type == 'select' %}
-                        <select name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
-                            {% if field.name == 'role' %}
-                                {% for value, label in form.ROLE_CHOICES %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            {% elif field.name == 'designation' %}
-                                {% for value, label in form.DESIGNATION_CHOICES %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            {% elif field.name == 'reporting_manager' %}
-                                {% for manager in form.reporting_manager.queryset %}
-                                    <option value="{{ manager.pk }}">{{ manager }}</option>
-                                {% endfor %}
-                            {% endif %}
-                        </select>
-                    {% elif field.type == 'textarea' %}
-                        <textarea name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}></textarea>
-                    {% else %}
-                        <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}"
-                               class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
-                    {% endif %}
-                </div>
-            {% endif %}
-        {% endfor %}
-
-        <!-- Dynamic Fields -->
-        {% for field in form_fields %}
-            {% if field.name not in 'first_name,last_name,email,phone,address,role,designation,reporting_manager' %}
-                <div class="form-group">
-                    <label class="block font-medium mb-1" for="{{ field.name }}">{{ field.label }}{% if field.required %}*{% endif %}</label>
-                    {% if field.type == 'textarea' %}
-                        <textarea name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}></textarea>
-                    {% else %}
-                        <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}"
-                               class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
-                    {% endif %}
-                </div>
-            {% endif %}
+        <!-- Dynamic Fields Only -->
+        {% for field in dynamic_fields %}
+            <div class="form-group">
+                <label class="block font-medium mb-1" for="{{ field.name }}">{{ field.label }}{% if field.required %}*{% endif %}</label>
+                {% if field.type == 'select' %}
+                    <select name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
+                        <option value="">Select {{ field.label }}</option>
+                        {% for option in field.options %}
+                            <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                {% elif field.type == 'textarea' %}
+                    <textarea name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}></textarea>
+                {% elif field.type == 'date' %}
+                    <input type="date" name="{{ field.name }}" id="{{ field.name }}"
+                           class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
+                {% else %}
+                    <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}"
+                           class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
+                {% endif %}
+            </div>
         {% endfor %}
     </form>
 </div>
 
 <script>
+    // List of default fields to prevent conflicts
+    const defaultFields = [
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'address',
+        'role',
+        'designation',
+        'reporting_manager'
+    ];
+
+    // Initialize fields array with only dynamic fields
     let fields = [
-        {% for field in form_fields %}
+        {% for field in dynamic_fields %}
             {
                 name: "{{ field.name }}",
                 label: "{{ field.label }}",
                 type: "{{ field.type }}",
-                required: {{ field.required|lower }}
+                required: {{ field.required|lower }},
+                options: {{ field.options|safe }}
             },
         {% endfor %}
     ];
+
+    document.getElementById('fieldType').addEventListener('change', function() {
+        const optionsInput = document.getElementById('fieldOptions');
+        optionsInput.style.display = this.value === 'select' ? 'block' : 'none';
+    });
 
     function addField() {
         const label = document.getElementById('fieldLabel').value;
         const type = document.getElementById('fieldType').value;
         const required = document.getElementById('fieldRequired').checked;
+        const optionsInput = document.getElementById('fieldOptions').value;
+        const options = type === 'select' && optionsInput ? optionsInput.split(',').map(opt => opt.trim()) : [];
 
         if (!label || !type) {
             alert("Please enter a label and select a type");
@@ -106,27 +102,65 @@
         }
 
         const fieldName = label.toLowerCase().replace(/\s+/g, '_');
-        fields.push({ name: fieldName, label: label, type: type, required: required });
 
+        // Prevent adding a field with a name that matches a default field
+        if (defaultFields.includes(fieldName)) {
+            alert("Field name conflicts with a default field. Please choose a different label.");
+            return;
+        }
+
+        // Prevent duplicate dynamic field names
+        if (fields.some(field => field.name === fieldName)) {
+            alert("A field with this name already exists. Please choose a different label.");
+            return;
+        }
+
+        fields.push({ name: fieldName, label: label, type: type, required: required, options: options });
+
+        // Add to field list
         const li = document.createElement('li');
         li.setAttribute('data-name', fieldName);
-        li.textContent = `${label} (${type})${required ? ' (Required)' : ''}`;
+        li.innerHTML = `
+            ${label} (${type})${required ? ' (Required)' : ''}${options.length ? ' Options: ' + options.join(', ') : ''}
+            <button onclick="removeField('${fieldName}')" class="text-red-500 ml-2">Remove</button>
+        `;
         document.getElementById('field-list').appendChild(li);
 
         // Add to preview
         const formPreview = document.getElementById('formPreview');
         const div = document.createElement('div');
         div.className = 'form-group';
+        let inputHtml = '';
+        if (type === 'select') {
+            inputHtml = `<select name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}>`;
+            inputHtml += `<option value="">Select ${label}</option>`;
+            options.forEach(opt => {
+                inputHtml += `<option value="${opt}">${opt}</option>`;
+            });
+            inputHtml += '</select>';
+        } else if (type === 'textarea') {
+            inputHtml = `<textarea name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}></textarea>`;
+        } else if (type === 'date') {
+            inputHtml = `<input type="date" name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}>`;
+        } else {
+            inputHtml = `<input type="${type}" name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}>`;
+        }
         div.innerHTML = `
             <label class="block font-medium mb-1" for="${fieldName}">${label}${required ? '*' : ''}</label>
-            ${type === 'textarea' ?
-                `<textarea name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}></textarea>` :
-                `<input type="${type}" name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}>`}
+            ${inputHtml}
         `;
         formPreview.appendChild(div);
 
         document.getElementById('fieldLabel').value = '';
         document.getElementById('fieldRequired').checked = false;
+        document.getElementById('fieldOptions').value = '';
+        document.getElementById('fieldOptions').style.display = 'none';
+    }
+
+    function removeField(fieldName) {
+        fields = fields.filter(field => field.name !== fieldName);
+        document.querySelector(`li[data-name="${fieldName}"]`).remove();
+        document.querySelector(`#formPreview [name="${fieldName}"]`).parentElement.remove();
     }
 
     async function saveFields() {
@@ -134,7 +168,8 @@
             acc[field.name] = {
                 type: field.type,
                 label: field.label,
-                required: field.required
+                required: field.required,
+                options: field.options || []
             };
             return acc;
         }, {});
@@ -158,11 +193,29 @@
             if (data.status === 'success') {
                 window.location.reload();
             } else {
-                alert('Error: ' + JSON.stringify(data.errors));
+                alert('Error: ' + JSON.stringify(data.message || data.errors));
             }
         } catch (error) {
             alert('An error occurred: ' + error.message);
         }
     }
 </script>
+
+<style>
+    #field-list {
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    #field-list li {
+        padding: 5px;
+        margin: 5px 0;
+        background-color: #f9f9f9;
+        display: flex;
+        justify-content: space-between;
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+</style>
 {% endblock %}

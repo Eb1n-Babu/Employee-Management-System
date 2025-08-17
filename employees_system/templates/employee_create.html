@@ -1,96 +1,138 @@
 {% extends 'base.html' %}
 
 {% block title %}
-    {% if employee %}Edit Employee{% else %}Create Employee{% endif %}
+    {{ form_heading|default:"Employee Information Form" }}
 {% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">
-    {{ form_heading|default:"Employee Information Form" }}
-</h1>
+<div class="container mx-auto px-4 py-6">
+    <h2 class="text-2xl font-bold mb-4">
+        🛠️ {{ form_heading|default:"Employee Information Form" }}
+    </h2>
 
-<form method="POST" class="space-y-4" id="employeeForm" action="{% url 'employee_create' %}{% if employee %}{% url 'employee_edit' pk=employee.pk %}{% endif %}">
-    {% csrf_token %}
+    <!-- Form for Creating/Editing Employee -->
+    <form id="employeeForm" class="space-y-4" method="POST" action="{% if employee %}{% url 'employee_edit' pk=employee.pk %}{% else %}{% url 'employee_create' %}{% endif %}">
+        {% csrf_token %}
 
-    <!-- Standard EmployeeForm fields -->
-    <div class="form-group">
-        {{ form.first_name.label_tag }} {{ form.first_name }}
-        {% if form.first_name.errors %}
-            <p class="text-red-500 text-sm">{{ form.first_name.errors }}</p>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        {{ form.last_name.label_tag }} {{ form.last_name }}
-        {% if form.last_name.errors %}
-            <p class="text-red-500 text-sm">{{ form.last_name.errors }}</p>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        {{ form.email.label_tag }} {{ form.email }}
-        {% if form.email.errors %}
-            <p class="text-red-500 text-sm">{{ form.email.errors }}</p>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        {{ form.phone.label_tag }} {{ form.phone }}
-        {% if form.phone.errors %}
-            <p class="text-red-500 text-sm">{{ form.phone.errors }}</p>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        {{ form.address.label_tag }} {{ form.address }}
-        {% if form.address.errors %}
-            <p class="text-red-500 text-sm">{{ form.address.errors }}</p>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        {{ form.role.label_tag }} {{ form.role }}
-        {% if form.role.errors %}
-            <p class="text-red-500 text-sm">{{ form.role.errors }}</p>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        {{ form.designation.label_tag }} {{ form.designation }}
-        {% if form.designation.errors %}
-            <p class="text-red-500 text-sm">{{ form.designation.errors }}</p>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        {{ form.reporting_manager.label_tag }} {{ form.reporting_manager }}
-        {% if form.reporting_manager.errors %}
-            <p class="text-red-500 text-sm">{{ form.reporting_manager.errors }}</p>
-        {% endif %}
-    </div>
+        <!-- Standard EmployeeForm Fields -->
+        {% for field in form_fields %}
+            {% if field.name in 'first_name,last_name,email,phone,address,role,designation,reporting_manager' %}
+                <div class="form-group">
+                    <label class="block font-medium mb-1" for="{{ field.name }}">{{ field.label }}{% if field.required %}*{% endif %}</label>
+                    {% if field.type == 'select' %}
+                        <select name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
+                            {% if field.name == 'role' %}
+                                {% for value, label in form.ROLE_CHOICES %}
+                                    <option value="{{ value }}" {% if field.initial == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            {% elif field.name == 'designation' %}
+                                {% for value, label in form.DESIGNATION_CHOICES %}
+                                    <option value="{{ value }}" {% if field.initial == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            {% elif field.name == 'reporting_manager' %}
+                                {% for manager in form.reporting_manager.queryset %}
+                                    <option value="{{ manager.pk }}" {% if field.initial == manager.pk|stringformat:"s" %}selected{% endif %}>{{ manager }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    {% elif field.type == 'textarea' %}
+                        <textarea name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>{{ field.initial }}</textarea>
+                    {% else %}
+                        <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}"
+                               class="border p-2 rounded w-full" value="{{ field.initial }}" {% if field.required %}required{% endif %}>
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="text-red-500 text-sm">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
 
-    <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
-        {% if employee %}Update{% else %}Create{% endif %}
-    </button>
-</form>
+        <!-- Dynamic Fields -->
+        {% for field in form_fields %}
+            {% if field.name not in 'first_name,last_name,email,phone,address,role,designation,reporting_manager' %}
+                <div class="form-group">
+                    <label class="block font-medium mb-1" for="{{ field.name }}">{{ field.label }}{% if field.required %}*{% endif %}</label>
+                    {% if field.type == 'select' %}
+                        <select name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>
+                            {% for option in field.options %}
+                                <option value="{{ option }}" {% if field.initial == option %}selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    {% elif field.type == 'textarea' %}
+                        <textarea name="{{ field.name }}" id="{{ field.name }}" class="border p-2 rounded w-full" {% if field.required %}required{% endif %}>{{ field.initial }}</textarea>
+                    {% elif field.type == 'date' %}
+                        <input type="date" name="{{ field.name }}" id="{{ field.name }}"
+                               class="border p-2 rounded w-full" value="{{ field.initial }}" {% if field.required %}required{% endif %}>
+                    {% else %}
+                        <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}"
+                               class="border p-2 rounded w-full" value="{{ field.initial }}" {% if field.required %}required{% endif %}>
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="text-red-500 text-sm">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            {% if employee %}Update{% else %}Create{% endif %}
+        </button>
+    </form>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.getElementById('employeeForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
+    let fields = [
+        {% for field in form_fields %}
+            {
+                name: "{{ field.name }}",
+                label: "{{ field.label }}",
+                type: "{{ field.type }}",
+                required: {{ field.required|lower }},
+                initial: "{{ field.initial|escapejs }}",
+                options: {{ field.options|safe }}
+            },
+        {% endfor %}
+    ];
 
-    try {
-        const response = await fetch(this.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
+    document.getElementById('employeeForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = this;
+        const formData = new FormData(form);
+        const data = {
+            form_data: Object.fromEntries(formData),
+            extra_fields: fields.reduce((acc, field) => {
+                acc[field.name] = {
+                    type: field.type,
+                    label: field.label,
+                    required: field.required,
+                    options: field.options || []
+                };
+                return acc;
+            }, {}),
+            heading: "{{ form_heading|default:'Employee Information Form' }}"
+        };
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                window.location.href = '{% url "employee_list" %}';
+            } else {
+                alert('Error: ' + JSON.stringify(result.errors));
             }
-        });
-        const data = await response.json();
-        if (data.success) {
-            window.location.href = '{% url "employee_list" %}';
-        } else {
-            alert('Error: ' + JSON.stringify(data.errors));
+        } catch (error) {
+            alert('An error occurred: ' + error.message);
         }
-    } catch (error) {
-        alert('An error occurred: ' + error.message);
-    }
-});
+    });
 </script>
 {% endblock %}

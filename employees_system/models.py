@@ -24,13 +24,13 @@ class FormField(models.Model):
     order = models.IntegerField(default=0)
     is_required = models.BooleanField(default=False)
     options = models.JSONField(null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         ordering = ['order']
 
     def __str__(self):
         return self.label
-
 
 class Employee(models.Model):
     emp_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
@@ -70,6 +70,7 @@ class Employee(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    extra_data = jsonfield.JSONField(default=dict, blank=True)  # For dynamic fields
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.emp_id or 'No ID'})"
