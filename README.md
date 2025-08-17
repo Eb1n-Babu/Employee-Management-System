@@ -146,7 +146,10 @@ Use admin panel (/admin) for manual checks (login with superuser).
 Frontend features (e.g., custom field display) are still in progress.
 The JavaScript logic for dynamic field injection is directly embedded within the HTML 
 and notification display is also in progress.
-
+Code arrangement is currently in progress and will be finalized shortly.
+The codebase is still under development; proper structuring will be applied in the next iteration.
+Code organization is pending and will be addressed before the next release.
+Modular arrangement and formatting are planned and will be implemented soon.
 ______________________________API Testing with Postman  Register a User_______________________________
 
 **Endpoint: POST /api/register/**
