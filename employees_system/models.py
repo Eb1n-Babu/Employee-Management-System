@@ -1,3 +1,4 @@
+# ems_app/models.py
 from django.core.validators import EmailValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
@@ -34,6 +35,7 @@ class FormField(models.Model):
 class Employee(models.Model):
     emp_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
 
+    # Explicit fields
     first_name = models.CharField(max_length=50, default='Unknown')
     last_name = models.CharField(max_length=50, default='Unknown')
     email = models.EmailField(
@@ -55,6 +57,7 @@ class Employee(models.Model):
 
     address = models.TextField(blank=True)
 
+    # Metadata
     role = models.CharField(max_length=100, default="Not Specified")
     designation = models.CharField(max_length=100, default="Not Specified")
     reporting_manager = models.ForeignKey(

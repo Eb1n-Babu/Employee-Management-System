@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 document.getElementById('employeeForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
@@ -35,3 +36,5 @@ document.getElementById('employeeForm').addEventListener('submit', async functio
         alert('An error occurred: ' + error.message);
     }
 });
+=======
+>>>>>>> 8baf7ad (revert some changes)

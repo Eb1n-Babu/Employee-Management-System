@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 document.getElementById('fieldType').addEventListener('change', function() {
     const optionsInput = document.getElementById('fieldOptions');
     optionsInput.style.display = this.value === 'select' ? 'block' : 'none';
@@ -41,3 +42,5 @@ function addField() {
     document.getElementById('field彼此
 
 System: * Today's date and time is 03:03 PM IST on Sunday, August 17, 2025.
+=======
+>>>>>>> 8baf7ad (revert some changes)
