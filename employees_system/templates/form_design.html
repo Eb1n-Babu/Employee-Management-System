@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}
     {{ form_heading|default:"Form Designer" }}
@@ -57,165 +58,38 @@
         {% endfor %}
     </form>
 </div>
+{% endblock %}
 
+
+{% block extra_js %}
+<script src="{% static 'js/form_design.js' %}"></script>
 <script>
-    // List of default fields to prevent conflicts
-    const defaultFields = [
-        'first_name',
-        'last_name',
-        'email',
-        'phone',
-        'address',
-        'role',
-        'designation',
-        'reporting_manager'
-    ];
-
-    // Initialize fields array with only dynamic fields
-    let fields = [
-        {% for field in dynamic_fields %}
-            {
-                name: "{{ field.name }}",
-                label: "{{ field.label }}",
-                type: "{{ field.type }}",
-                required: {{ field.required|lower }},
-                options: {{ field.options|safe }}
-            },
-        {% endfor %}
-    ];
-
-    document.getElementById('fieldType').addEventListener('change', function() {
-        const optionsInput = document.getElementById('fieldOptions');
-        optionsInput.style.display = this.value === 'select' ? 'block' : 'none';
-    });
-
-    function addField() {
-        const label = document.getElementById('fieldLabel').value;
-        const type = document.getElementById('fieldType').value;
-        const required = document.getElementById('fieldRequired').checked;
-        const optionsInput = document.getElementById('fieldOptions').value;
-        const options = type === 'select' && optionsInput ? optionsInput.split(',').map(opt => opt.trim()) : [];
-
-        if (!label || !type) {
-            alert("Please enter a label and select a type");
-            return;
-        }
-
-        const fieldName = label.toLowerCase().replace(/\s+/g, '_');
-
-        // Prevent adding a field with a name that matches a default field
-        if (defaultFields.includes(fieldName)) {
-            alert("Field name conflicts with a default field. Please choose a different label.");
-            return;
-        }
-
-        // Prevent duplicate dynamic field names
-        if (fields.some(field => field.name === fieldName)) {
-            alert("A field with this name already exists. Please choose a different label.");
-            return;
-        }
-
-        fields.push({ name: fieldName, label: label, type: type, required: required, options: options });
-
-        // Add to field list
-        const li = document.createElement('li');
-        li.setAttribute('data-name', fieldName);
-        li.innerHTML = `
-            ${label} (${type})${required ? ' (Required)' : ''}${options.length ? ' Options: ' + options.join(', ') : ''}
-            <button onclick="removeField('${fieldName}')" class="text-red-500 ml-2">Remove</button>
-        `;
-        document.getElementById('field-list').appendChild(li);
-
-        // Add to preview
-        const formPreview = document.getElementById('formPreview');
-        const div = document.createElement('div');
-        div.className = 'form-group';
-        let inputHtml = '';
-        if (type === 'select') {
-            inputHtml = `<select name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}>`;
-            inputHtml += `<option value="">Select ${label}</option>`;
-            options.forEach(opt => {
-                inputHtml += `<option value="${opt}">${opt}</option>`;
-            });
-            inputHtml += '</select>';
-        } else if (type === 'textarea') {
-            inputHtml = `<textarea name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}></textarea>`;
-        } else if (type === 'date') {
-            inputHtml = `<input type="date" name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}>`;
-        } else {
-            inputHtml = `<input type="${type}" name="${fieldName}" id="${fieldName}" class="border p-2 rounded w-full" ${required ? 'required' : ''}>`;
-        }
-        div.innerHTML = `
-            <label class="block font-medium mb-1" for="${fieldName}">${label}${required ? '*' : ''}</label>
-            ${inputHtml}
-        `;
-        formPreview.appendChild(div);
-
-        document.getElementById('fieldLabel').value = '';
-        document.getElementById('fieldRequired').checked = false;
-        document.getElementById('fieldOptions').value = '';
-        document.getElementById('fieldOptions').style.display = 'none';
-    }
-
-    function removeField(fieldName) {
-        fields = fields.filter(field => field.name !== fieldName);
-        document.querySelector(`li[data-name="${fieldName}"]`).remove();
-        document.querySelector(`#formPreview [name="${fieldName}"]`).parentElement.remove();
-    }
-
-    async function saveFields() {
-        const extraFields = fields.reduce((acc, field) => {
-            acc[field.name] = {
-                type: field.type,
-                label: field.label,
-                required: field.required,
-                options: field.options || []
-            };
-            return acc;
-        }, {});
-
-        const payload = {
-            heading: "{{ form_heading|default:'Custom Employee Form' }}",
-            extra_fields: extraFields,
-            form_data: {}
-        };
-
-        try {
-            const response = await fetch("{% url 'form-design' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
+    // Pass dynamic fields and other data to the JavaScript file
+    const formDesignerConfig = {
+        defaultFields: [
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'address',
+            'role',
+            'designation',
+            'reporting_manager'
+        ],
+        fields: [
+            {% for field in dynamic_fields %}
+                {
+                    name: "{{ field.name }}",
+                    label: "{{ field.label }}",
+                    type: "{{ field.type }}",
+                    required: {{ field.required|lower }},
+                    options: {{ field.options|safe }}
                 },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                window.location.reload();
-            } else {
-                alert('Error: ' + JSON.stringify(data.message || data.errors));
-            }
-        } catch (error) {
-            alert('An error occurred: ' + error.message);
-        }
-    }
+            {% endfor %}
+        ],
+        csrfToken: "{{ csrf_token }}",
+        formHeading: "{{ form_heading|default:'Custom Employee Form' }}",
+        saveUrl: "{% url 'form-design' %}"
+    };
 </script>
-
-<style>
-    #field-list {
-        border: 1px solid #ccc;
-        padding: 10px;
-        border-radius: 4px;
-    }
-    #field-list li {
-        padding: 5px;
-        margin: 5px 0;
-        background-color: #f9f9f9;
-        display: flex;
-        justify-content: space-between;
-    }
-    .form-group {
-        margin-bottom: 1rem;
-    }
-</style>
 {% endblock %}

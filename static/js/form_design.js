@@ -1,17 +1,43 @@
-document.addEventListener('DOMContentLoaded', () => {
-    new Sortable(document.getElementById('fields-container'), { animation: 150 });
-    document.getElementById('add-field').addEventListener('click', () => {
-        const field = document.createElement('div');
-        field.className = 'field';
-        field.innerHTML = `<input type="text" class="label" placeholder="Label"><select class="type"><option value="text">text</option><option value="number">number</option><option value="date">date</option><option value="password">password</option></select>`;
-        document.getElementById('fields-container').appendChild(field);
-    });
-    document.getElementById('save-form').addEventListener('click', () => {
-        const fields = Array.from(document.querySelectorAll('.field')).map(f => `${f.querySelector('.label').value},${f.querySelector('.type').value}`);
-        fetch('/form-design/', {
-            method: 'POST',
-            body: new URLSearchParams({ 'fields[]': fields }),
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        }).then(response => response.json()).then(data => console.log(data));
-    });
+document.getElementById('fieldType').addEventListener('change', function() {
+    const optionsInput = document.getElementById('fieldOptions');
+    optionsInput.style.display = this.value === 'select' ? 'block' : 'none';
 });
+
+function addField() {
+    const label = document.getElementById('fieldLabel').value;
+    const type = document.getElementById('fieldType').value;
+    const required = document.getElementById('fieldRequired').checked;
+    const optionsInput = document.getElementById('fieldOptions').value;
+    const options = type === 'select' && optionsInput ? optionsInput.split(',').map(opt => opt.trim()) : [];
+
+    if (!label || !type) {
+        alert("Please enter a label and select a type");
+        return;
+    }
+
+    const fieldName = label.toLowerCase().replace(/\s+/g, '_');
+
+    // Prevent adding a field with a name that matches a default field
+    if (formDesignerConfig.defaultFields.includes(fieldName)) {
+        alert("Field name conflicts with a default field. Please choose a different label.");
+        return;
+    }
+
+    // Prevent duplicate dynamic field names
+    if (formDesignerConfig.fields.some(field => field.name === fieldName)) {
+        alert("A field with this name already exists. Please choose a different label.");
+        return;
+    }
+
+    formDesignerConfig.fields.push({ name: fieldName, label: label, type: type, required: required, options: options });
+
+    // Add to field list
+    const li = document.createElement('li');
+    li.setAttribute('data-name', fieldName);
+    li.innerHTML = `
+        ${label} (${type})${required ? ' (Required)' : ''}${options.length ? ' Options: ' + options.join(', ') : ''}
+        <button onclick="removeField('${fieldName}')" class="text-red-500 ml-2">Remove</button>
+    `;
+    document.getElementById('field彼此
+
+System: * Today's date and time is 03:03 PM IST on Sunday, August 17, 2025.
