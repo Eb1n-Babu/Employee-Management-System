@@ -14,7 +14,11 @@ from rest_framework.permissions import IsAuthenticated
 import re
 from .models import User, FormField, Employee
 from .serializers import UserSerializer, FormFieldSerializer, EmployeeSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django import forms
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
+import json
 
 # Create your views here.
 
@@ -73,14 +77,12 @@ def register_view(request):
             }, status=400)
 
         try:
-            # Create user
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password=password
             )
 
-            # Log in the user
             login(request, user)
 
             return JsonResponse({
@@ -107,7 +109,7 @@ def change_password_view(request):
         new_password = data.get('new_password')
         confirm_new_password = data.get('confirm_new_password')
 
-        # Validate old password
+
         user = request.user
         if not user.check_password(old_password):
             return JsonResponse({
@@ -115,14 +117,13 @@ def change_password_view(request):
                 'error': 'Old password is incorrect'
             }, status=400)
 
-        # Check if new passwords match
+
         if new_password != confirm_new_password:
             return JsonResponse({
                 'success': False,
                 'error': 'New passwords do not match'
             }, status=400)
 
-        # Password validation regex
         password_pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
 
         if not re.match(password_pattern, new_password):
@@ -155,13 +156,10 @@ def profile_view(request):
 
     if request.method == 'POST':
         try:
-            # Get POST data
             data = request.POST.dict()
 
-            # Remove CSRF token from data
             data.pop('csrfmiddlewaretoken', None)
 
-            # Validate input fields
             profile_data = {}
             for key, value in data.items():
                 if key not in ALLOWED_FIELDS:
@@ -170,29 +168,24 @@ def profile_view(request):
                         'error': f'Invalid field: {key}'
                     }, status=400)
 
-                # Basic validation for each field
                 if key == 'email' and value:
-                    # Simple email format validation
                     if '@' not in value or '.' not in value:
                         return JsonResponse({
                             'success': False,
                             'error': 'Invalid email format'
                         }, status=400)
                 elif key == 'phone_number' and value:
-                    # Simple phone number validation (can be enhanced)
                     if not value.replace('+', '').replace('-', '').replace(' ', '').isdigit():
                         return JsonResponse({
                             'success': False,
                             'error': 'Invalid phone number format'
                         }, status=400)
 
-                # Clean and store the value
+
                 profile_data[key] = value.strip() if value else ''
 
-            # Update user profile
             request.user.profile_data.update(profile_data)
 
-            # Update core user fields if present
             if 'first_name' in profile_data:
                 request.user.first_name = profile_data['first_name']
             if 'last_name' in profile_data:
@@ -200,7 +193,6 @@ def profile_view(request):
             if 'email' in profile_data:
                 request.user.email = profile_data['email']
 
-            # Save user
             request.user.save()
 
             return JsonResponse({
@@ -220,7 +212,6 @@ def profile_view(request):
                 'error': 'An unexpected error occurred'
             }, status=500)
 
-    # GET request - render profile form
     context = {
         'profile': request.user.profile_data,
         'user': {
@@ -243,7 +234,6 @@ def employee_create_view(request, pk=None):
 
     if request.method == 'POST':
         try:
-            # Check if request body contains JSON (for API-like submissions)
             if request.content_type == 'application/json':
                 import json
                 data = json.loads(request.body)
@@ -260,7 +250,6 @@ def employee_create_view(request, pk=None):
                     ) for i, (name, config) in enumerate(extra_fields.items())
                 ]
             else:
-                # Use saved FormField instances
                 form_fields = FormField.objects.filter(
                     created_by=request.user
                 ).order_by('order')
@@ -276,7 +265,7 @@ def employee_create_view(request, pk=None):
 
             if form.is_valid():
                 emp = form.save(commit=False)
-                if not pk:  # New employee
+                if not pk:
                     emp.created_by = request.user
                 emp.save()
                 return JsonResponse({
@@ -290,7 +279,6 @@ def employee_create_view(request, pk=None):
                     }
                 })
             else:
-                # For non-AJAX POST, render the form with errors
                 if request.content_type != 'application/json':
                     form_fields_context = [
                         {
@@ -326,7 +314,6 @@ def employee_create_view(request, pk=None):
             }, status=400)
 
     elif request.method == 'GET':
-        # Use saved FormField instances
         form_fields = FormField.objects.filter(
             created_by=request.user
         ).order_by('order')
@@ -334,7 +321,6 @@ def employee_create_view(request, pk=None):
 
         form = EmployeeForm(instance=employee, form_fields=form_fields, heading=heading)
 
-        # Generate form field metadata with initial values
         form_fields_context = [
             {
                 'name': field_name,
@@ -401,14 +387,6 @@ def employee_delete_view(request, pk):
     return JsonResponse({'success': False}, status=400)
 
 
-
-
-from django import forms
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render
-import json
-
 @csrf_exempt
 def form_design_view(request):
     """
@@ -416,7 +394,6 @@ def form_design_view(request):
     GET: Renders the form designer template with saved fields.
     POST: Saves form fields to FormField model and optionally employee data.
     """
-    # Define default fields to prevent conflicts
     DEFAULT_FIELDS = [
         'first_name', 'last_name', 'email', 'phone',
         'address', 'role', 'designation', 'reporting_manager'
@@ -429,7 +406,6 @@ def form_design_view(request):
             heading = data.get('heading', 'Employee Information Form')
             form_data = data.get('form_data', {})
 
-            # Validate that extra_fields do not include default fields
             for field_name in extra_fields.keys():
                 if field_name in DEFAULT_FIELDS:
                     return JsonResponse({
@@ -437,11 +413,9 @@ def form_design_view(request):
                         'message': f"Field '{field_name}' is a default field and cannot be added as a custom field."
                     }, status=400)
 
-            # Delete existing FormField instances for the user
             if request.user.is_authenticated:
                 FormField.objects.filter(created_by=request.user).delete()
 
-            # Save new FormField instances
             for order, (name, config) in enumerate(extra_fields.items()):
                 FormField.objects.create(
                     label=config['label'],
@@ -452,7 +426,6 @@ def form_design_view(request):
                     created_by=request.user if request.user.is_authenticated else None
                 )
 
-            # Process employee form data if provided
             if form_data:
                 form_fields = FormField.objects.filter(
                     created_by=request.user if request.user.is_authenticated else None
@@ -492,7 +465,6 @@ def form_design_view(request):
             }, status=400)
 
     elif request.method == 'GET':
-        # Retrieve saved dynamic fields
         dynamic_fields = FormField.objects.filter(
             created_by=request.user if request.user.is_authenticated else None
         ).order_by('order')
@@ -500,7 +472,6 @@ def form_design_view(request):
 
         form = EmployeeForm(form_fields=dynamic_fields, heading=heading)
 
-        # Prepare dynamic fields for context
         dynamic_fields_context = [
             {
                 'name': field.label.lower().replace(' ', '_'),
@@ -511,7 +482,6 @@ def form_design_view(request):
             } for field in dynamic_fields
         ]
 
-        # Prepare default fields for context
         default_fields_context = [
             {
                 'name': field_name,

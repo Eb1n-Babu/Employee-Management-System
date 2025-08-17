@@ -1,4 +1,3 @@
-# ems_app/serializers.py
 from rest_framework import serializers
 from .models import User, FormField, Employee
 
@@ -28,7 +27,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'emp_id', 'created_at', 'updated_at', 'created_by']
 
     def validate_email(self, value):
-        # Check for duplicate email, excluding the current instance (for updates)
         queryset = Employee.objects.filter(email=value)
         if self.instance:
             queryset = queryset.exclude(id=self.instance.id)
@@ -37,11 +35,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone(self, value):
-        # Optional: Add additional phone validation if needed
         return value
 
     def validate_extra_data(self, value):
-        # Ensure extra_data is a dict if provided
         if value and not isinstance(value, dict):
             raise serializers.ValidationError("extra_data must be a valid JSON object.")
         return value

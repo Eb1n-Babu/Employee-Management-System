@@ -1,4 +1,3 @@
-# ems_app/models.py
 from django.core.validators import EmailValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
