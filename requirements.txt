@@ -2,3 +2,4 @@ Django==5.2.6
 django_jsonfield==1.4.1
 djangorestframework_simplejwt==5.5.1
 python-decouple==3.8
+django-cors-headers==4.7.0
