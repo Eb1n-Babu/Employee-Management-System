@@ -2,11 +2,10 @@ from django.core.validators import EmailValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
-import jsonfield
 import uuid
 
 class User(AbstractUser):
-    profile_data = jsonfield.JSONField(default=dict)
+    profile_data = models.JSONField(default=dict)
 
     def __str__(self):
         return self.username
@@ -69,7 +68,7 @@ class Employee(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
-    extra_data = jsonfield.JSONField(default=dict, blank=True)  # For dynamic fields
+    extra_data = models.JSONField(default=dict, blank=True)  # For dynamic fields
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.emp_id or 'No ID'})"
